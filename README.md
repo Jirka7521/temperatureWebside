@@ -111,3 +111,5 @@ Edit `config.js` to set:
 
 This project is licensed under the MIT License. See the LICENSE file for details.
 
+## Note
+Development was in GitLab under CTU
