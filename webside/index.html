@@ -1,0 +1,79 @@
+﻿<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meteorologický panel</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+    <!-- Main Container -->
+    <div class="container-fluid p-3 dashboard-rows">
+
+        <!-- Row 1: Indoor Temperature & Humidity and Outdoor Temp & Rain Forecast -->
+        <div class="row row-grow-1 g-3 mb-2">
+            <!-- Indoor Temperature & Humidity Card -->
+            <div class="col-12 col-md-6 d-flex">
+                <div class="card text-center shadow flex-fill">
+                    <div class="card-body">
+                        <div class="responsive-title">Vnitřní teplota</div>
+                        <div class="temp-humidity-container">
+                            <!-- Temperature -->
+                            <div class="text-center">
+                                <div class="responsive-value" id="temperature">--°C</div>
+                                <div class="text-muted">Teplota</div>
+                            </div>
+                            <!-- Humidity -->
+                            <div class="text-center">
+                                <div class="responsive-value" id="humidity">--%</div>
+                                <div class="text-muted">Vlhkost</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Outdoor Weather Card -->
+            <div class="col-12 col-md-6 d-flex">
+                <div class="card text-center shadow flex-fill">
+                    <div class="card-body">
+                        <div class="responsive-title">Venkovní počasí</div>
+                        <div class="forecast-container">
+                            <!-- Outdoor Temperature -->
+                            <div class="responsive-value" id="outdoor-temperature">--°C</div>
+                            <!-- Rain Forecast -->
+                            <div class="rain-forecast" id="rain-forecast">Žádná data o srážkách</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 2: Weather Chart (full width) -->
+        <div class="row row-grow-3 g-3">
+            <div class="col-12 d-flex">
+                <div class="card shadow flex-fill">
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <!-- Weather Chart Canvas -->
+                            <canvas id="weatherChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Bootstrap JS Bundle (with Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Chart.js Library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <!-- Custom JS Files -->
+    <script src="config.js"></script>
+    <script src="getValues.js"></script>
+    <script src="chartSetup.js"></script>
+</body>
+</html>
