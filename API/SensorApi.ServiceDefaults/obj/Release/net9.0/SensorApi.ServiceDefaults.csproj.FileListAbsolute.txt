@@ -1,0 +1,12 @@
+C:\Users\Jirka\source\repos\SensorApi\SensorApi.ServiceDefaults\bin\Release\net9.0\SensorApi.ServiceDefaults.deps.json
+C:\Users\Jirka\source\repos\SensorApi\SensorApi.ServiceDefaults\bin\Release\net9.0\SensorApi.ServiceDefaults.dll
+C:\Users\Jirka\source\repos\SensorApi\SensorApi.ServiceDefaults\bin\Release\net9.0\SensorApi.ServiceDefaults.pdb
+C:\Users\Jirka\source\repos\SensorApi\SensorApi.ServiceDefaults\obj\Release\net9.0\SensorApi.ServiceDefaults.csproj.AssemblyReference.cache
+C:\Users\Jirka\source\repos\SensorApi\SensorApi.ServiceDefaults\obj\Release\net9.0\SensorApi.ServiceDefaults.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Jirka\source\repos\SensorApi\SensorApi.ServiceDefaults\obj\Release\net9.0\SensorApi.ServiceDefaults.AssemblyInfoInputs.cache
+C:\Users\Jirka\source\repos\SensorApi\SensorApi.ServiceDefaults\obj\Release\net9.0\SensorApi.ServiceDefaults.AssemblyInfo.cs
+C:\Users\Jirka\source\repos\SensorApi\SensorApi.ServiceDefaults\obj\Release\net9.0\SensorApi.ServiceDefaults.csproj.CoreCompileInputs.cache
+C:\Users\Jirka\source\repos\SensorApi\SensorApi.ServiceDefaults\obj\Release\net9.0\SensorApi.ServiceDefaults.dll
+C:\Users\Jirka\source\repos\SensorApi\SensorApi.ServiceDefaults\obj\Release\net9.0\refint\SensorApi.ServiceDefaults.dll
+C:\Users\Jirka\source\repos\SensorApi\SensorApi.ServiceDefaults\obj\Release\net9.0\SensorApi.ServiceDefaults.pdb
+C:\Users\Jirka\source\repos\SensorApi\SensorApi.ServiceDefaults\obj\Release\net9.0\ref\SensorApi.ServiceDefaults.dll

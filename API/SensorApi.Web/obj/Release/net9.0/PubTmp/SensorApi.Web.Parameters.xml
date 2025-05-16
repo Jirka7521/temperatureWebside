@@ -1,0 +1,6 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<parameters>
+  <parameter name="IIS Web Application Name" description="" value="SensorApi" tags="IisApp">
+    <parameterEntry kind="ProviderPath" scope="IisApp" match="^C:\\Users\\Jirka\\source\\repos\\SensorApi\\SensorApi\.Web\\obj\\Release\\net9\.0\\PubTmp\\Out\\$" />
+  </parameter>
+</parameters>
