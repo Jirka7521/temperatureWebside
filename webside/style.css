@@ -1,0 +1,239 @@
+/*****************************************************************************
+ * METEOROLOGICKÝ PANEL - STYLESHEET
+ * Organization: Layout styles, component styles, responsive adjustments
+ *****************************************************************************/
+
+/* -----------------------------------------
+ * 1. BASE LAYOUT & CONTAINER STYLES
+ * ----------------------------------------- */
+
+/* Set full height and remove default margin/padding. Prevent scrolling by default. */
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* Prevent scrolling by default */
+}
+
+/* Ensure body and main container always fill viewport height */
+body, .container-fluid {
+    height: 100vh;
+    min-height: 100vh;
+    max-height: 100vh; /* Force container to fit viewport */
+}
+
+/* Dashboard container uses flex column layout */
+.dashboard-rows {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding: 0.5rem !important; /* Reduce container padding */
+}
+
+/* Row height distribution for dashboard sections */
+.row-grow-1 {
+    flex: 1; /* Top temperature panels - increased by 50% */
+}
+
+.row-grow-2 {
+    flex: 0.3 0 auto; /* Time info - minimal space */
+}
+
+.row-grow-3 {
+    flex: 2; /* Chart - increased to use most space */
+}
+
+/* Row spacing adjustments */
+.row.g-3 {
+    --bs-gutter-y: 0.3rem;
+    margin-bottom: 0.3rem !important;
+}
+
+.mb-2 {
+    margin-bottom: 0.3rem !important;
+}
+
+/* -----------------------------------------
+ * 2. CARD COMPONENT STYLES
+ * ----------------------------------------- */
+
+/* Make cards fill their parent containers */
+.card {
+    height: 100%;
+}
+
+/* Card body uses flex for vertical centering */
+.card-body {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 0.5rem !important; /* Reduced padding */
+    justify-content: center;
+    align-items: center;
+}
+
+/* -----------------------------------------
+ * 3. TEMPERATURE & HUMIDITY DISPLAY
+ * ----------------------------------------- */
+
+/* Responsive value text (temperature/humidity) */
+.responsive-value {
+    font-size: clamp(1.5rem, 5vw, 4rem); /* Reduced size */
+    line-height: 1;
+    margin: 0;
+}
+
+/* Responsive title text */
+.responsive-title {
+    font-size: clamp(1.1rem, 2.5vw, 1.8rem); /* Smaller */
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+}
+
+/* Larger text for first row elements */
+.row-grow-1 .responsive-value {
+    font-size: clamp(2.2rem, 7vw, 5.5rem); /* Significantly increased size */
+}
+
+.row-grow-1 .responsive-title {
+    font-size: clamp(1.5rem, 3.5vw, 2.5rem); /* Increased title size */
+    margin-bottom: 0.5rem; /* Slightly more spacing */
+}
+
+.row-grow-1 .text-muted {
+    font-size: 1.1rem; /* Larger label text */
+    margin-top: 0.2rem;
+}
+
+.row-grow-1 .rain-forecast {
+    font-size: clamp(1.2rem, 3vw, 2rem); /* Larger forecast text */
+    margin-top: 0.5rem;
+}
+
+/* Layout for temperature and humidity values */
+.temp-humidity-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem; /* Reduced gap */
+}
+
+/* Forecast container for rain/other info */
+.forecast-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+/* Rain forecast text style */
+.rain-forecast {
+    margin-top: 0.3rem;
+    font-size: clamp(0.9rem, 2vw, 1.5rem); /* Smaller */
+    color: #7fbbf3;
+}
+
+/* -----------------------------------------
+ * 4. TIME DISPLAY STYLES
+ * ----------------------------------------- */
+
+/* Layout for time display */
+.time-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    width: 100%;
+    font-size: clamp(0.9rem, 2vw, 1.5rem); /* Smaller */
+}
+
+/* -----------------------------------------
+ * 5. CHART STYLES & CONTROLS
+ * ----------------------------------------- */
+
+/* Controls above the chart (title, buttons) */
+.chart-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 0.3rem;
+    flex-shrink: 0;
+}
+
+/* Make title text in chart controls smaller */
+.chart-controls .fs-4 {
+    font-size: 1.1rem !important; /* Override Bootstrap */
+}
+
+/* Chart container fills available space */
+.chart-container {
+    position: relative;
+    width: 100%;
+    flex-grow: 1;
+    overflow: hidden;
+    height: 100%; /* Take all available height */
+}
+
+/* Weather chart sizing */
+#weatherChart {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Button controls styling */
+.btn-group .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* Temperature indicator text (muted) */
+.text-muted {
+    font-size: 0.8rem;
+    margin-top: 0.1rem;
+}
+
+/* -----------------------------------------
+ * 6. RESPONSIVE DESIGN ADJUSTMENTS
+ * ----------------------------------------- */
+@media (max-width: 991.98px) {
+    /* Stack temp/humidity vertically on smaller screens */
+    .temp-humidity-container {
+        flex-direction: column;
+        gap: 0.25rem; /* Even smaller gap on mobile */
+    }
+
+    /* Stack time info vertically */
+    .time-container {
+        flex-direction: column;
+        gap: 0.15rem;
+    }
+
+    /* Hide time separator on mobile */
+    .time-separator {
+        display: none;
+    }
+
+    /* Adjust row proportions for mobile */
+    .row-grow-1 {
+        flex: 1 0 auto;
+    }
+
+    .row-grow-2 {
+        flex: 0.25 0 auto;
+    }
+
+    .row-grow-3 {
+        flex: 2.2 1 auto;
+    }
+}
+
+/* Allow scrolling on very small mobile screens as last resort */
+@media (max-height: 500px) {
+    html, body {
+        overflow: auto;
+    }
+}
