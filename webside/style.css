@@ -90,9 +90,8 @@ body, .container-fluid {
     margin-bottom: 0.3rem;
 }
 
-/* Larger text for first row elements */
 .row-grow-1 .responsive-value {
-    font-size: clamp(2.2rem, 7vw, 5.5rem); /* Significantly increased size */
+    font-size: clamp(3.3rem, 10.5vw, 8.25rem); /* Increased by 150% */
 }
 
 .row-grow-1 .responsive-title {
@@ -116,7 +115,7 @@ body, .container-fluid {
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    gap: 1rem; /* Reduced gap */
+    gap: 3.5rem; /* Increased gap for more space */
 }
 
 /* Forecast container for rain/other info */
