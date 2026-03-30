@@ -18,7 +18,8 @@ class TelemetrySender {
                   bool& humidityChanged,
                   bool& forceSendDue) const;
 
-  void send(float temperature, float humidity, Logger& logger);
+  // Returns true on successful HTTP send, false on failure.
+  bool send(float temperature, float humidity, Logger& logger);
 
   unsigned long lastSendTimeMs() const;
 

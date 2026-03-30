@@ -33,10 +33,10 @@ bool TelemetrySender::shouldSend(float averageTemperature,
   return tempChanged || humidityChanged || forceSendDue;
 }
 
-void TelemetrySender::send(float temperature, float humidity, Logger& logger) {
+bool TelemetrySender::send(float temperature, float humidity, Logger& logger) {
   if (WiFi.status() != WL_CONNECTED) {
     logger.println("WiFi Disconnected. Cannot send data.");
-    return;
+    return false;
   }
 
   WiFiClientSecure client;
@@ -53,6 +53,7 @@ void TelemetrySender::send(float temperature, float humidity, Logger& logger) {
   http.addHeader("Content-Type", "application/x-www-form-urlencoded");
 
   const int httpResponseCode = http.POST("");
+  bool success = false;
   if (httpResponseCode > 0) {
     const String response = http.getString();
     logger.print("HTTP Response code: ");
@@ -63,6 +64,7 @@ void TelemetrySender::send(float temperature, float humidity, Logger& logger) {
     lastSentTemperature_ = temperature;
     lastSentHumidity_ = humidity;
     lastSendTimeMs_ = millis();
+    success = true;
   } else {
     logger.print("Error on sending POST: ");
     logger.println(httpResponseCode);
@@ -70,6 +72,7 @@ void TelemetrySender::send(float temperature, float humidity, Logger& logger) {
   }
 
   http.end();
+  return success;
 }
 
 unsigned long TelemetrySender::lastSendTimeMs() const {

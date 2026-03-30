@@ -16,6 +16,12 @@ constexpr char API_URL[] = "https://your-api-endpoint/upload";
 // Serial monitor speed (must match your serial monitor setting)
 constexpr unsigned long SERIAL_BAUD_RATE = 9600UL;
 
+// How long to wait for WiFi before rebooting (in milliseconds)
+constexpr unsigned long WIFI_CONNECT_TIMEOUT_MS = 30000UL;
+
+// Delay before reboot to allow logs to flush (in milliseconds)
+constexpr unsigned long RESTART_DELAY_MS = 2000UL;
+
 // DHT sensor pin and model
 constexpr uint8_t DHT_SENSOR_PIN = 13;
 constexpr uint8_t DHT_SENSOR_TYPE = DHT11;

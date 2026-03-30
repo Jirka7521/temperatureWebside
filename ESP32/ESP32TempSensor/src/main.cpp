@@ -13,11 +13,22 @@ TelemetrySender telemetrySender(TEMP_THRESHOLD_C,
                                 HUMIDITY_THRESHOLD_PERCENT,
                                 FORCE_SEND_INTERVAL_MS);
 
+// Triggers a controlled restart after printing the reason.
+void rebootWithReason(const char* reason) {
+  logger.println(reason);
+  logger.printf("Rebooting in %lu ms...\n", RESTART_DELAY_MS);
+  delay(RESTART_DELAY_MS);
+  ESP.restart();
+}
+
 void setup() {
   // Initialize serial logs, sensor, and WiFi connection.
   logger.begin(SERIAL_BAUD_RATE);
   dhtSensor.begin();
-  connectToWifi(logger);
+
+  if (!connectToWifi(logger, WIFI_CONNECT_TIMEOUT_MS)) {
+    rebootWithReason("WiFi connect failed.");
+  }
 }
 
 void loop() {
@@ -63,7 +74,10 @@ void loop() {
       logger.println("Sending data: Force send interval reached");
     }
 
-    telemetrySender.send(avgTemperature, avgHumidity, logger);
+    const bool sent = telemetrySender.send(avgTemperature, avgHumidity, logger);
+    if (!sent) {
+      rebootWithReason("Telemetry send failed.");
+    }
   } else {
     logger.println("No significant changes, not sending data");
   }

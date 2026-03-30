@@ -21,45 +21,83 @@ This repository contains a complete solution for a meteorological dashboard, dev
 - Chart.js (loaded via CDN)
 - Bootstrap 5 (loaded via CDN)
 
-## Directory Structure
+## Repository Structure
 
 ```
 .
-├── esp32code.ino      # ESP32 firmware for indoor sensor
-├── index.html         # Main dashboard HTML
-├── style.css          # Dashboard styles (responsive, Bootstrap-based)
-├── config.js          # Dashboard configuration (API endpoints, thresholds)
-├── getValues.js       # JS logic for fetching/updating panel data
-├── chartSetup.js      # JS logic for Chart.js temperature chart
-├── README.md          # Project documentation
+├── ESP32/
+│   └── ESP32TempSensor/           # PlatformIO ESP32 firmware project
+├── webside/                       # Static frontend dashboard
+├── API/                           # .NET backend API and web projects
+└── README.md                      # Project documentation
 ```
 
 ## ESP32 Firmware
 
+- Built with PlatformIO in [ESP32/ESP32TempSensor](ESP32/ESP32TempSensor).
 - Reads temperature and humidity every second.
-- Maintains a rolling average and only sends data if a threshold is exceeded or every 15 minutes.
+- Maintains a rolling average and sends data when thresholds are exceeded or after a max interval.
 - Sends data via HTTPS POST to a configurable API endpoint.
-- WiFi credentials and API URL are set in the source.
+- Uses modular classes for logging, averaging, WiFi connection, and telemetry sending.
+- Automatically reboots and retries if WiFi connection fails (timeout) or HTTP send fails.
+
+### ESP32 Project Layout
+
+```text
+ESP32/ESP32TempSensor/
+├── include/
+│   ├── config.example.h      # Git-tracked template with all settings
+│   ├── config.h              # Local real config (ignored by Git)
+│   ├── Logger.h
+│   ├── SensorAverager.h
+│   ├── TelemetrySender.h
+│   ├── WifiHelper.h
+│   └── AppConstants.h        # Compatibility wrapper
+├── src/
+│   ├── main.cpp
+│   ├── Logger.cpp
+│   ├── TelemetrySender.cpp
+│   └── WifiHelper.cpp
+└── platformio.ini
+```
+
+### ESP32 Configuration
+
+1. Copy [ESP32/ESP32TempSensor/include/config.example.h](ESP32/ESP32TempSensor/include/config.example.h) to [ESP32/ESP32TempSensor/include/config.h](ESP32/ESP32TempSensor/include/config.h).
+2. Fill in your real WiFi and API values.
+3. Tune runtime settings in config:
+   - serial baud rate
+   - DHT pin/type
+   - sample count
+   - measurement interval
+   - temperature/humidity thresholds
+   - max send interval
+   - WiFi timeout and reboot delay
+
+Note: [ESP32/ESP32TempSensor/include/config.h](ESP32/ESP32TempSensor/include/config.h) is ignored by Git; [ESP32/ESP32TempSensor/include/config.example.h](ESP32/ESP32TempSensor/include/config.example.h) is committed.
 
 ## Web Dashboard
 
-- **index.html:** Responsive layout with Bootstrap, two main panels (indoor, outdoor), and a 24-hour temperature chart.
-- **style.css:** Custom styles for layout, cards, responsive text, and chart sizing.
-- **config.js:** Central configuration for API endpoints, temperature thresholds, and refresh intervals.
-- **getValues.js:** Handles fetching indoor/outdoor data, updating UI, and managing timers.
-- **chartSetup.js:** Fetches and displays 24-hour temperature data for both indoor and outdoor sources using Chart.js.
+- Frontend files are in [webside](webside).
+- [webside/index.html](webside/index.html): Responsive layout with Bootstrap, indoor/outdoor panels, and a 24-hour chart.
+- [webside/style.css](webside/style.css): Responsive styles and card/chart layout.
+- [webside/config.js](webside/config.js): Central endpoints and refresh/threshold settings.
+- [webside/getValues.js](webside/getValues.js): Periodic data fetch and UI updates.
+- [webside/chartSetup.js](webside/chartSetup.js): Chart.js setup for indoor/outdoor history.
 
 ## Running the Project
 
 1. **ESP32 Setup:**
-     - Flash `esp32code.ino` to your ESP32.
-     - Set your WiFi credentials and API endpoint in the code.
-     - Deploy a compatible API server to receive and store sensor data.
+    - Open [ESP32/ESP32TempSensor](ESP32/ESP32TempSensor) in PlatformIO.
+    - Create [ESP32/ESP32TempSensor/include/config.h](ESP32/ESP32TempSensor/include/config.h) from the example template.
+    - Build and upload firmware to ESP32.
+    - Run serial monitor with the configured baud rate from config.
+    - Deploy a compatible API server to receive/store sensor data.
 
 2. **Dashboard:**
-     - Place all web files (`index.html`, `style.css`, `config.js`, `getValues.js`, `chartSetup.js`) in a directory.
-     - Serve the directory with a static file server, or deploy to a static web hosting service.
-     - Open `index.html` in your browser or access your deployed web app URL.
+    - Use files from [webside](webside).
+    - Serve the directory with a static file server, or deploy to a static web hosting service.
+    - Open [webside/index.html](webside/index.html) in your browser or access your deployed web app URL.
 
 ### Deploying to Static Web Hosting
 
@@ -97,7 +135,7 @@ CREATE TABLE SensorTable (
 
 ## Configuration
 
-Edit `config.js` to set:
+Edit [webside/config.js](webside/config.js) to set:
 - API endpoints for indoor and outdoor data
 - Temperature thresholds for color coding
 - Location coordinates for outdoor weather

@@ -4,11 +4,16 @@
 #include "../include/config.h"
 #include <WiFi.h>
 
-void connectToWifi(Logger& logger) {
+bool connectToWifi(Logger& logger, unsigned long timeoutMs) {
+  const unsigned long startedAt = millis();
   WiFi.begin(ssid, password);
   logger.print("Connecting to WiFi");
 
   while (WiFi.status() != WL_CONNECTED) {
+    if (millis() - startedAt >= timeoutMs) {
+      logger.println("\nWiFi connection timeout.");
+      return false;
+    }
     delay(500);
     logger.print(".");
   }
@@ -16,4 +21,5 @@ void connectToWifi(Logger& logger) {
   logger.println("\nConnected to WiFi.");
   logger.print("IP Address: ");
   logger.println(WiFi.localIP());
+  return true;
 }
