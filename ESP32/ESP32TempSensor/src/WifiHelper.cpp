@@ -5,6 +5,14 @@
 #include <WiFi.h>
 
 bool connectToWifi(Logger& logger, unsigned long timeoutMs) {
+  WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(true);
+  WiFi.setSleep(false);
+
+  if (WiFi.status() == WL_CONNECTED) {
+    return true;
+  }
+
   const unsigned long startedAt = millis();
   WiFi.begin(ssid, password);
   logger.print("Connecting to WiFi");
@@ -22,4 +30,13 @@ bool connectToWifi(Logger& logger, unsigned long timeoutMs) {
   logger.print("IP Address: ");
   logger.println(WiFi.localIP());
   return true;
+}
+
+bool ensureWifiConnected(Logger& logger, unsigned long timeoutMs) {
+  if (WiFi.status() == WL_CONNECTED) {
+    return true;
+  }
+
+  logger.println("WiFi disconnected. Attempting reconnect...");
+  return connectToWifi(logger, timeoutMs);
 }

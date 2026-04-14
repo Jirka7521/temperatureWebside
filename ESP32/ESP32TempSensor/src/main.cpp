@@ -32,6 +32,13 @@ void setup() {
 }
 
 void loop() {
+  // Recover WiFi in-loop instead of rebooting on transient drops.
+  if (!ensureWifiConnected(logger, WIFI_CONNECT_TIMEOUT_MS)) {
+    logger.println("WiFi still unavailable. Will retry next cycle.");
+    delay(MEASUREMENT_INTERVAL_MS);
+    return;
+  }
+
   // Read current sensor values.
   const float humidity = dhtSensor.readHumidity();
   const float temperature = dhtSensor.readTemperature();
@@ -76,7 +83,7 @@ void loop() {
 
     const bool sent = telemetrySender.send(avgTemperature, avgHumidity, logger);
     if (!sent) {
-      rebootWithReason("Telemetry send failed.");
+      logger.println("Telemetry send failed. Will retry next cycle.");
     }
   } else {
     logger.println("No significant changes, not sending data");
