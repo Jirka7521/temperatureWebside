@@ -108,13 +108,11 @@
     <!-- Custom JS Files -->
     <!--
         Script load order is important:
-        1) utils.js  - small helpers
         2) darkmode.js - toggles theme class used by CSS variables
         3) config.js - must set `window.inlineConfig` before panels initialize
         4) getValues.js - dashboard controller and ConfigManager
         5) chartSetup.js - depends on `window.configData` and Chart.js
     -->
-    <script src="utils.js"></script>
     <script src="darkmode.js"></script>
     <script src="config.js"></script>
     <script src="getValues.js"></script>

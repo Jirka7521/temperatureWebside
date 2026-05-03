@@ -29,7 +29,10 @@ set -e
 : "${TEMP_THRESHOLD_WARM_VALUE:=30}"
 : "${TEMP_THRESHOLD_WARM_COLOR:=#CCCC00}"
 
-if [ -f /usr/share/nginx/html/config.template.js ]; then
+if [ -f /usr/share/nginx/html/config.js ]; then
+  echo "Using existing config.js in web root; skipping template substitution."
+else
+  if [ -f /usr/share/nginx/html/config.template.js ]; then
   # Allow overriding backend/frontend IPs via env; if not set, try to detect local IP
   BACKEND_IP=${BACKEND_FIXED_IP:-}
   FRONTEND_IP=${FRONTEND_FIXED_IP:-}
@@ -52,8 +55,9 @@ if [ -f /usr/share/nginx/html/config.template.js ]; then
   # Export so envsubst can replace placeholders
   export OUTDOOR_API_ADDRESS INDOOR_API_ADDR INDOOR_API_ENDPOINT_CURRENT INDOOR_API_ENDPOINT_RANGE INDOOR_API_PARAM_START INDOOR_API_PARAM_END INDOOR_API_PARAM_INTERVAL INDOOR_DATA_MAX_AGE POSITION_LAT POSITION_LON REFRESH_INTERVAL_MS TEMP_THRESHOLD_COLD_VALUE TEMP_THRESHOLD_COLD_COLOR TEMP_THRESHOLD_COOL_VALUE TEMP_THRESHOLD_COOL_COLOR TEMP_THRESHOLD_NORMAL_VALUE TEMP_THRESHOLD_NORMAL_COLOR TEMP_THRESHOLD_WARM_VALUE TEMP_THRESHOLD_WARM_COLOR
 
-  # Generate config.js using the computed INDOOR_API_ADDR and other env vars
-  envsubst < /usr/share/nginx/html/config.template.js | sed "s|\${INDOOR_API_ADDRESS}|${INDOOR_API_ADDR}|g" > /usr/share/nginx/html/config.js
+    # Generate config.js using the computed INDOOR_API_ADDR and other env vars
+    envsubst < /usr/share/nginx/html/config.template.js | sed "s|\${INDOOR_API_ADDRESS}|${INDOOR_API_ADDR}|g" > /usr/share/nginx/html/config.js
+  fi
 fi
 
 exec nginx -g "daemon off;"

@@ -148,6 +148,51 @@ docker run -it --rm -p 8080:80 \
     temp-dashboard:latest
 ```
 
+### Build and run both containers (recommended)
+
+Use `docker-compose` to build the API and web images and run both services as containers.
+
+```bash
+# (Optional) create the external network used by docker-compose if it doesn't exist
+docker network create internalWebsides
+
+# Build images defined in docker-compose.yml
+docker compose build
+
+# Start both services in detached mode (containers will be visible with `docker ps -a`)
+docker compose up -d
+
+# Show all containers (running and stopped)
+docker ps -a
+
+# Follow logs
+docker compose logs -f
+
+# To stop and remove containers, networks and images created by compose
+docker compose down
+```
+
+If you prefer to build and run manually without docker-compose, use the commands below.
+
+```bash
+# Build images individually
+docker build -t temp-api:latest API
+docker build -t temp-dashboard:latest webside
+
+# Ensure the bridge network exists so containers can communicate by name
+docker network create internalWebsides
+
+# Run the API container
+docker run -d --name temp-api --network internalWebsides -p 8000:8000 --env-file .env temp-api:latest
+
+# Run the web container and point it at the API by container name
+docker run -d --name temp-web --network internalWebsides -p 8080:80 --env-file .env \
+    -e INDOOR_API_ADDRESS="http://temp-api:8000/" temp-dashboard:latest
+
+# Verify containers
+docker ps -a
+```
+
 Important notes about configuration and Docker:
 
 - The container contains `config.template.js` which is processed by the

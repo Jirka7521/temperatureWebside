@@ -19,8 +19,10 @@ window.inlineConfig = {
   archiveApiAddress: "https://archive-api.open-meteo.com/v1/archive",
 
   // API endpoint for indoor sensor data
-  // Use the server host reachable by clients. Update if you serve the backend on a different host/port.
-  indoorApiAddress: "http://192.168.160.3:8000/",
+  // Use the server host reachable by clients. For local testing the backend
+  // is usually available on the host at port 8000 (see docker-compose). If
+  // you run the frontend in a browser on the same machine use localhost.
+  indoorApiAddress: "http://localhost:8000/",
 
   // Indoor API endpoints for current and historical data
   indoorApiEndpointCurrent: "getCurrent",
