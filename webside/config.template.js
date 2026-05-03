@@ -22,7 +22,10 @@ window.inlineConfig = {
     warm:   { value: ${TEMP_THRESHOLD_WARM_VALUE}, color: "${TEMP_THRESHOLD_WARM_COLOR}" }
   },
 
+  // Public weather API used for outdoor forecasts (forecast API)
   apiAddress: "${OUTDOOR_API_ADDRESS}",
+  // Public archive API used for historical data (Open-Meteo archive)
+  archiveApiAddress: "${OUTDOOR_ARCHIVE_API_ADDRESS}",
   indoorApiAddress: "${INDOOR_API_ADDRESS}",
   indoorApiEndpointCurrent: "${INDOOR_API_ENDPOINT_CURRENT}",
   indoorApiEndpointRange: "${INDOOR_API_ENDPOINT_RANGE}",

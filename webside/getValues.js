@@ -118,7 +118,7 @@ class IndoorTemperaturePanel extends Panel {
                 if (this.tempElement) {
                     this.tempElement.textContent = `${roundedTemp}°C`;
                     this.tempElement.className = 'responsive-value';
-                    this._applyTemperatureClass(temp);
+                    this._applyTemperatureClass(temp, this.tempElement);
                 }
 
                 const humidity = parseFloat(indoorData.humidity);
@@ -168,7 +168,10 @@ class IndoorTemperaturePanel extends Panel {
      * @private
      * @param {number} temp
      */
-    _applyTemperatureClass(temp) {
+    _applyTemperatureClass(temp, element) {
+        // element: DOM element to apply color to (falls back to this.tempElement)
+        const el = element || this.tempElement;
+        if (!el) return;
         if (this.config && this.config.temperatureThresholds) {
             const thresholds = this.config.temperatureThresholds;
             let color;
@@ -183,7 +186,7 @@ class IndoorTemperaturePanel extends Panel {
             } else {
                 color = "#FF0000";
             }
-            this.tempElement.style.color = color;
+            el.style.color = color;
         }
     }
 
@@ -211,12 +214,14 @@ class IndoorTemperaturePanel extends Panel {
 class OutdoorTemperaturePanel extends Panel {
     /**
      * @param {string} tempId - Temperature element ID
+     * @param {string} temp1hId - 1-hour forecast temperature element ID
      * @param {string} rainId - Rain forecast element ID 
      * @param {Object} config - Application configuration
      */
-    constructor(tempId, rainId, config) {
+    constructor(tempId, temp1hId, rainId, config) {
         super(config);
         this.tempElement = document.getElementById(tempId);
+        this.predElement = document.getElementById(temp1hId);
         this.rainElement = document.getElementById(rainId);
     }
 
@@ -225,29 +230,39 @@ class OutdoorTemperaturePanel extends Panel {
      * @returns {Promise<Object>} Weather data
      */
     async fetchWeather() {
-        const baseUrl = this.config.apiAddress;
+        // Use Open-Meteo forecast API for current + short-term forecast
+        const baseUrl = this.config.apiAddress || 'https://api.open-meteo.com/v1/forecast';
         const lat = this.config.position.latitude;
         const lon = this.config.position.longitude;
-        const url = `${baseUrl}?latitude=${lat}&longitude=${lon}&current=temperature_2m,precipitation&hourly=precipitation_probability&forecast_days=1&timezone=auto`;
+        // Request current conditions and hourly temperature + precipitation probability
+        const url = `${baseUrl}?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,precipitation_probability&precipitation_unit=mm&timezone=auto`;
         const response = await fetch(url);
         const data = await response.json();
 
-        let currentIndex = 0;
+        // Determine index of the current hour within hourly arrays (if available)
+        let currentIndex = -1;
         if (Array.isArray(data.hourly?.time)) {
             const now = new Date();
-            const matchIndex = data.hourly.time.findIndex(t => {
+            currentIndex = data.hourly.time.findIndex(t => {
                 const dt = new Date(t);
                 return dt.getHours() === now.getHours() && dt.getDate() === now.getDate();
             });
-            if (matchIndex >= 0) {
-                currentIndex = matchIndex;
-            }
         }
 
+        // current_weather provides an easy current temperature
+        const currentTemp = data.current_weather?.temperature ?? data.current?.temperature_2m ?? null;
+        const currentPrecip = null; // forecast API doesn't always return precipitation in current_weather
+
         return {
-            temperature: data.current?.temperature_2m,
-            precipitation: data.current?.precipitation,
-            rainProbability: data.hourly?.precipitation_probability?.[currentIndex] ?? null
+            temperature: currentTemp,
+            precipitation: currentPrecip,
+            rainProbability: (currentIndex >= 0 && Array.isArray(data.hourly?.precipitation_probability))
+                ? data.hourly.precipitation_probability[currentIndex]
+                : null,
+            // Forecasted temperature ~1 hour ahead (from hourly forecast)
+            predictedTemperature1h: (currentIndex >= 0 && Array.isArray(data.hourly?.temperature_2m))
+                ? data.hourly.temperature_2m[currentIndex + 1] ?? null
+                : null
         };
     }
 
@@ -257,15 +272,34 @@ class OutdoorTemperaturePanel extends Panel {
     async update() {
         try {
             const outdoor = await this.fetchWeather();
+            // Current outdoor temperature (round and style like indoor)
             if (typeof outdoor.temperature === 'number') {
+                const t = Math.round(outdoor.temperature * 10) / 10;
                 if (this.tempElement) {
-                    this.tempElement.textContent = `${outdoor.temperature}°C`;
+                    this.tempElement.textContent = `${t}°C`;
                     this.tempElement.className = 'responsive-value';
-                    this._applyTemperatureClass(outdoor.temperature);
+                    this._applyTemperatureClass(t, this.tempElement);
                 }
             } else {
-                if (this.tempElement) this.tempElement.textContent = '--°C';
+                if (this.tempElement) {
+                    this.tempElement.textContent = '--°C';
+                    this.tempElement.className = 'responsive-value';
+                }
             }
+
+            // Show predicted temperature in ~1 hour (rounded + styled)
+            if (this.predElement) {
+                if (typeof outdoor.predictedTemperature1h === 'number') {
+                    const p = Math.round(outdoor.predictedTemperature1h * 10) / 10;
+                    this.predElement.textContent = `${p}°C`;
+                    this.predElement.className = 'responsive-value';
+                    this._applyTemperatureClass(p, this.predElement);
+                } else {
+                    this.predElement.textContent = '--°C';
+                    this.predElement.className = 'responsive-value';
+                }
+            }
+
             this._updateRainDisplay(outdoor);
         } catch (e) {
             if (this.tempElement) this.tempElement.textContent = '--°C';
@@ -278,7 +312,9 @@ class OutdoorTemperaturePanel extends Panel {
      * @private
      * @param {number} temp
      */
-    _applyTemperatureClass(temp) {
+    _applyTemperatureClass(temp, element) {
+        const el = element || this.tempElement;
+        if (!el) return;
         if (this.config && this.config.temperatureThresholds) {
             const thresholds = this.config.temperatureThresholds;
             let color;
@@ -293,7 +329,15 @@ class OutdoorTemperaturePanel extends Panel {
             } else {
                 color = "#FF0000";
             }
-            this.tempElement.style.color = color;
+            el.style.color = color;
+            // If this is the 1-hour predicted element, make the color less vibrant
+            try {
+                if (el === this.predElement) {
+                    el.style.opacity = '0.5';
+                } else {
+                    el.style.opacity = '1';
+                }
+            } catch (e) {}
         }
     }
 
@@ -343,7 +387,7 @@ class DashboardController {
             this.config = config;
             // Initialize panels
             this.indoorPanel = new IndoorTemperaturePanel('temperature', 'humidity', this.config);
-            this.outdoorPanel = new OutdoorTemperaturePanel('outdoor-temperature', 'rain-forecast', this.config);
+            this.outdoorPanel = new OutdoorTemperaturePanel('outdoor-temperature', 'outdoor-temperature-1h', 'rain-forecast', this.config);
             // Setup timers
             this._setupTimers();
             // Initial updates

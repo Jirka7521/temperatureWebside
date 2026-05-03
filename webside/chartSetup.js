@@ -117,13 +117,39 @@ class TemperatureChart {
         });
 
         // Ensure the chart resizes correctly when the window/container changes (including fullscreen)
-        window.addEventListener('resize', () => {
+        // Use ResizeObserver on the chart container for more reliable sizing than window.resize alone.
+        const container = this.chartCanvas.parentElement || this.chartCanvas;
+        try {
+            this._resizeObserver = new ResizeObserver(() => {
+                try {
+                    this.chart.resize();
+                } catch (e) {}
+            });
+            this._resizeObserver.observe(container);
+        } catch (e) {
+            // ResizeObserver may not be available on older browsers — fall back to window resize
+            window.addEventListener('resize', () => {
+                try { this.chart.resize(); } catch (e) {}
+            });
+        }
+
+        // Also handle fullscreen changes which can alter container sizing
+        const fsHandler = () => { try { this.chart.resize(); } catch (e) {} };
+        document.addEventListener('fullscreenchange', fsHandler);
+
+        // Store listeners so they can be cleaned up if necessary
+        this._fullscreenHandler = fsHandler;
+
+        // Cleanup handler to disconnect observers/listeners when page unloads
+        this._cleanup = () => {
             try {
-                this.chart.resize();
-            } catch (e) {
-                // ignore if chart not ready
-            }
-        });
+                if (this._resizeObserver) this._resizeObserver.disconnect();
+            } catch (e) {}
+            try {
+                if (this._fullscreenHandler) document.removeEventListener('fullscreenchange', this._fullscreenHandler);
+            } catch (e) {}
+        };
+        window.addEventListener('unload', this._cleanup);
 
         // Trigger an initial resize after creation to sync sizes
         setTimeout(() => { try { this.chart.resize(); } catch (e) {} }, 50);
@@ -200,7 +226,8 @@ class TemperatureChart {
         // Wait until configuration is loaded (config.js / config.template.js)
         await configPromise;
         // `configData` is a global created by the ConfigManager
-        const baseUrl = configData?.apiAddress || 'https://api.open-meteo.com/v1/forecast';
+        // Use the Open-Meteo historical archive API for past data
+        const baseUrl = configData?.archiveApiAddress || 'https://archive-api.open-meteo.com/v1/archive';
         const lat = configData?.position?.latitude || 50.0755;
         const lon = configData?.position?.longitude || 14.4378;
 
@@ -209,7 +236,8 @@ class TemperatureChart {
         const start_date = past.toISOString().split('T')[0];
         const end_date = now.toISOString().split('T')[0];
 
-        const url = `${baseUrl}?latitude=${lat}&longitude=${lon}&hourly=temperature_2m&start_date=${start_date}&end_date=${end_date}&timezone=UTC`;
+        // Request hourly historical temperature; timezone=auto returns times in local timezone
+        const url = `${baseUrl}?latitude=${lat}&longitude=${lon}&hourly=temperature_2m&start_date=${start_date}&end_date=${end_date}&timezone=auto`;
         // Fetch hourly temperature data for the last 24 hours
         const response = await fetch(url);
         const data = await response.json();
@@ -248,7 +276,8 @@ class TemperatureChart {
             let filteredTimes = [];
             let filteredTemps = [];
             for (let i = 0; i < times.length; i++) {
-                const time = new Date(times[i] + 'Z'); // Parse API time as UTC
+                // Parse API time string (timezone=auto => local timestamps) directly
+                const time = new Date(times[i]);
                 if (time >= past24 && time <= now) {
                     filteredTimes.push(time);
                     filteredTemps.push(temps[i]);

@@ -209,13 +209,13 @@ body, .container-fluid {
     position: relative;
 }
 
-/* Absolute center the theme toggle horizontally (and vertically within the card) on md+ screens */
+/* Place theme toggle inline inside the status card; center via flexbox */
 .status-card .theme-toggle {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 2;
+    position: static;
+    left: auto;
+    top: auto;
+    transform: none;
+    z-index: auto;
 }
 
 /* Prevent left/right texts from being overlapped by centered toggle on larger screens */
@@ -237,6 +237,8 @@ body, .container-fluid {
         margin: 0.4rem auto;
     }
 }
+
+/* (middle-toggle removed — theme toggle is now inside status card) */
 
 .status-text {
     font-size: clamp(1.2rem, 2.8vw, 2rem);

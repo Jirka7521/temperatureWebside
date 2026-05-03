@@ -15,6 +15,8 @@ window.inlineConfig = {
   // API endpoint for outdoor weather data
   // Public weather API used for outdoor forecasts
   apiAddress: "https://api.open-meteo.com/v1/forecast",
+  // Archive API for historical weather data (Open-Meteo archive)
+  archiveApiAddress: "https://archive-api.open-meteo.com/v1/archive",
 
   // API endpoint for indoor sensor data
   // Use the server host reachable by clients. Update if you serve the backend on a different host/port.
@@ -34,7 +36,7 @@ window.inlineConfig = {
   indoorDataMaxAge: 60, // Maximum age (in seconds) for cached indoor data
 
   // Default position (latitude, longitude) for weather data
-  position: { latitude: 50.0000, longitude: 15.00000 },
+  position: { latitude: 50.0800175, longitude: 14.3939161 },
 
   refreshInterval: 15000 // Data refresh interval in milliseconds (15 seconds)
 };
