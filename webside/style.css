@@ -3,6 +3,30 @@
  * Organization: Layout styles, component styles, responsive adjustments
  *****************************************************************************/
 
+/* Theme variables: light by default, dark when `body.dark` is set */
+:root{
+    --bg: #f8f9fa;
+    --card-bg: #ffffff;
+    --text-primary: #212529;
+    --text-muted: #6c757d;
+    --accent: #3888ff;
+    --rain: #7fbbf3;
+    /* Gridline color for charts (light mode) */
+    --gridline: rgba(108, 117, 125, 0.35); /* based on text-muted */
+}
+
+body.dark{
+    --bg: #0b1220;
+    --card-bg: #0f1724;
+    --text-primary: #e6eef8;
+    --text-muted: #9aa6b2;
+    --accent: #66b2ff;
+    --rain: #7fb3ff;
+    /* Gridline color for charts (dark mode) */
+    --gridline: rgba(230, 238, 248, 0.18); /* white-ish, subtle */
+}
+
+
 /* -----------------------------------------
  * 1. BASE LAYOUT & CONTAINER STYLES
  * ----------------------------------------- */
@@ -40,7 +64,12 @@ body, .container-fluid {
 }
 
 .row-grow-3 {
-    flex: 2; /* Chart - increased to use most space */
+    flex: 1.4; /* Reduced to give more room for header/status and avoid overflow */
+}
+
+/* Allow flex children to shrink properly and prevent content overflow */
+.row-grow-3, .card, .card-body, .chart-container {
+    min-height: 0;
 }
 
 /* Row spacing adjustments */
@@ -60,6 +89,8 @@ body, .container-fluid {
 /* Make cards fill their parent containers */
 .card {
     height: 100%;
+    background: var(--card-bg);
+    border: 0;
 }
 
 /* Card body uses flex for vertical centering */
@@ -70,7 +101,21 @@ body, .container-fluid {
     padding: 0.5rem !important; /* Reduced padding */
     justify-content: center;
     align-items: center;
+    color: var(--text-primary);
 }
+
+/* Icon button styling (ghost button) */
+.btn-ghost {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    padding: 0.25rem 0.4rem;
+}
+.btn-ghost:hover{
+    color: var(--accent);
+}
+
+.theme-icon svg{ display: block; }
 
 /* -----------------------------------------
  * 3. TEMPERATURE & HUMIDITY DISPLAY
@@ -78,7 +123,7 @@ body, .container-fluid {
 
 /* Responsive value text (temperature/humidity) */
 .responsive-value {
-    font-size: clamp(1.5rem, 5vw, 4rem); /* Reduced size */
+    font-size: clamp(1.8rem, 6vw, 5rem);
     line-height: 1;
     margin: 0;
 }
@@ -91,22 +136,23 @@ body, .container-fluid {
 }
 
 .row-grow-1 .responsive-value {
-    font-size: clamp(3.3rem, 10.5vw, 8.25rem); /* Increased by 150% */
+    /* Slightly larger but still safe on 16:9 screens */
+    font-size: clamp(3.8rem, 11vmin, 9.8rem);
 }
 
 .row-grow-1 .responsive-title {
-    font-size: clamp(1.5rem, 3.5vw, 2.5rem); /* Increased title size */
-    margin-bottom: 0.5rem; /* Slightly more spacing */
+    font-size: clamp(1.5rem, 3.6vmin, 2.8rem);
+    margin-bottom: 0.6rem; /* Slightly more spacing */
 }
 
 .row-grow-1 .text-muted {
-    font-size: 1.1rem; /* Larger label text */
-    margin-top: 0.2rem;
+    font-size: 1.2rem;
+    margin-top: 0.24rem;
 }
 
 .row-grow-1 .rain-forecast {
-    font-size: clamp(1.2rem, 3vw, 2rem); /* Larger forecast text */
-    margin-top: 0.5rem;
+    font-size: clamp(1.45rem, 3.6vw, 2.4rem);
+    margin-top: 0.55rem;
 }
 
 /* Layout for temperature and humidity values */
@@ -115,7 +161,8 @@ body, .container-fluid {
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    gap: 3.5rem; /* Increased gap for more space */
+    gap: clamp(1rem, 3.2vmin, 3rem); /* Responsive gap to reduce overflow risk */
+    flex-wrap: wrap; /* Allow wrapping to avoid overflow on narrower tiles */
 }
 
 /* Forecast container for rain/other info */
@@ -131,7 +178,7 @@ body, .container-fluid {
 .rain-forecast {
     margin-top: 0.3rem;
     font-size: clamp(0.9rem, 2vw, 1.5rem); /* Smaller */
-    color: #7fbbf3;
+    color: var(--rain);
 }
 
 /* -----------------------------------------
@@ -147,6 +194,66 @@ body, .container-fluid {
     gap: 0.75rem;
     width: 100%;
     font-size: clamp(0.9rem, 2vw, 1.5rem); /* Smaller */
+}
+
+.status-row {
+    flex: 0 0 auto;
+}
+
+.status-card .card-body {
+    padding: 0.85rem 1.2rem !important;
+}
+
+/* Make status card a positioning context so theme-toggle can be centered */
+.status-card {
+    position: relative;
+}
+
+/* Absolute center the theme toggle horizontally (and vertically within the card) on md+ screens */
+.status-card .theme-toggle {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+}
+
+/* Prevent left/right texts from being overlapped by centered toggle on larger screens */
+@media (min-width: 768px) {
+    .status-card .card-body {
+        padding-left: 3.5rem !important;
+        padding-right: 3.5rem !important;
+    }
+    .status-card .status-text {
+        flex: 1 1 0;
+    }
+}
+
+/* Mobile fallback: keep toggle in normal flow on small screens */
+@media (max-width: 767.98px) {
+    .status-card .theme-toggle {
+        position: static;
+        transform: none;
+        margin: 0.4rem auto;
+    }
+}
+
+.status-text {
+    font-size: clamp(1.2rem, 2.8vw, 2rem);
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: center;
+}
+
+/* When time-since is considered expired (stale), highlight it */
+.status-text.time-expired {
+    color: #dc3545; /* Bootstrap danger red for visibility */
+}
+
+@media (min-width: 768px) {
+    .status-text {
+        text-align: left;
+    }
 }
 
 /* -----------------------------------------
@@ -173,14 +280,19 @@ body, .container-fluid {
     position: relative;
     width: 100%;
     flex-grow: 1;
-    overflow: hidden;
+    overflow: auto;
+    /* Prevent the chart from exceeding viewport height; leave room for top tiles/status */
+    max-height: calc(100vh - 300px);
     height: 100%; /* Take all available height */
 }
 
 /* Weather chart sizing */
 #weatherChart {
+    display: block;
     width: 100% !important;
     height: 100% !important;
+    max-height: 100%;
+    box-sizing: border-box;
 }
 
 /* Button controls styling */
@@ -191,6 +303,7 @@ body, .container-fluid {
 
 /* Temperature indicator text (muted) */
 .text-muted {
+    color: var(--text-muted) !important; /* ensure contrast in dark mode, override Bootstrap */
     font-size: 0.8rem;
     margin-top: 0.1rem;
 }
@@ -227,6 +340,18 @@ body, .container-fluid {
 
     .row-grow-3 {
         flex: 2.2 1 auto;
+    }
+}
+
+@media (max-width: 767.98px) {
+    /* Hide chart row on phones to keep focus on key tiles */
+    .row-grow-3 {
+        display: none !important;
+    }
+
+    /* Allow scrolling when chart row is removed on very small screens */
+    html, body {
+        overflow: auto;
     }
 }
 

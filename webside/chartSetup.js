@@ -19,13 +19,16 @@ class TemperatureChart {
             console.error('Canvas element with id "weatherChart" not found.');
             return;
         }
+        // Ensure canvas fills its container; fallback to 300px if container has no height yet
+        this.chartCanvas.style.width = '100%';
         if (!this.chartCanvas.style.height) {
-            this.chartCanvas.style.height = '300px';
+            this.chartCanvas.style.height = '100%';
         }
 
         // Data structures for storing chart data
         this.temperatureData = { labels: [], values: [] };
         this.indoorData = [];
+        this.indoorHumidityData = [];
 
         // Initialize chart, load data, and set up refresh timers
         this._initChart();
@@ -56,9 +59,10 @@ class TemperatureChart {
      * @private
      */
     _initChart() {
-        // Ensure canvas has a height for Chart.js rendering
-        if (!this.chartCanvas.height) {
-            this.chartCanvas.height = this.chartCanvas.clientHeight || 300;
+        // Ensure canvas drawing buffer matches displayed size when possible
+        const clientH = this.chartCanvas.clientHeight;
+        if (clientH > 0) {
+            this.chartCanvas.height = clientH;
         }
 
         this.chart = new Chart(this.chartCanvas, {
@@ -68,9 +72,9 @@ class TemperatureChart {
                 datasets: [
                     {
                         label: 'Venkovní teplota (°C)',
-                        data: [],
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                            data: [],
+                            borderColor: 'rgba(255, 193, 7, 1)',
+                            backgroundColor: 'rgba(255, 193, 7, 0.2)',
                         fill: true,
                         tension: 0.2,
                         borderWidth: 2,
@@ -78,13 +82,24 @@ class TemperatureChart {
                     },
                     {
                         label: 'Vnitřní teplota (°C)',
-                        data: [],
-                        borderColor: 'rgba(255, 99, 132, 1)',
-                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            data: [],
+                            borderColor: 'rgba(220, 53, 69, 1)',
+                            backgroundColor: 'rgba(220, 53, 69, 0.2)',
                         fill: true,
                         tension: 0.2,
                         borderWidth: 2,
                         pointRadius: 3
+                    }
+                    ,{
+                        label: 'Vnitřní vlhkost (%)',
+                        data: [],
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        fill: false,
+                        tension: 0.2,
+                        borderWidth: 2,
+                        pointRadius: 2,
+                        yAxisID: 'yHumidity'
                     }
                 ]
             },
@@ -119,6 +134,13 @@ class TemperatureChart {
                     title: { display: false },
                     beginAtZero: false,
                     ticks: { maxTicksLimit: 5 }
+                },
+                yHumidity: {
+                    type: 'linear',
+                    position: 'right',
+                    title: { display: false },
+                    ticks: { callback: v => `${v}%`, maxTicksLimit: 5 },
+                    grid: { display: false }
                 }
             },
             plugins: {
@@ -301,6 +323,7 @@ class TemperatureChart {
 
             // Reset indoor data array to match the length of temperatureData labels
             this.indoorData = Array(this.temperatureData.labels.length).fill(null);
+            this.indoorHumidityData = Array(this.temperatureData.labels.length).fill(null);
 
             // Create array of time points from labels (as Date objects)
             const chartTimePoints = this.temperatureData.labels.map(timeStr => {
@@ -320,7 +343,8 @@ class TemperatureChart {
 
                 indoorDataPoints.push({
                     time: localTime,
-                    temp: parseFloat(item.temperature)
+                    temp: parseFloat(item.temperature),
+                    humidity: item.humidity !== undefined ? parseFloat(item.humidity) : null
                 });
             }
 
@@ -345,6 +369,7 @@ class TemperatureChart {
 
                 if (nearestIndex !== -1) {
                     this.indoorData[i] = indoorDataPoints[nearestIndex].temp;
+                    this.indoorHumidityData[i] = indoorDataPoints[nearestIndex].humidity;
                 }
             }
 
@@ -353,6 +378,7 @@ class TemperatureChart {
         } catch (error) {
             console.error('Error fetching indoor temperature data:', error);
             this.indoorData = Array(this.temperatureData.labels.length).fill(null);
+            this.indoorHumidityData = Array(this.temperatureData.labels.length).fill(null);
         }
     }
 
@@ -402,6 +428,9 @@ class TemperatureChart {
         this.chart.data.labels = this.temperatureData.labels;
         this.chart.data.datasets[0].data = this.temperatureData.values;
         this.chart.data.datasets[1].data = this.indoorData;
+        if (this.chart.data.datasets[2]) {
+            this.chart.data.datasets[2].data = this.indoorHumidityData;
+        }
 
         this.chart.options.plugins.title = {
             display: true,

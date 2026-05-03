@@ -12,7 +12,8 @@ window.inlineConfig = {
   apiAddress: "https://api.open-meteo.com/v1/forecast",
 
   // API endpoint for indoor sensor data
-  indoorApiAddress: "API address for indoor sensors",
+  // Use the server host reachable by clients. Update if you serve the backend on a different host/port.
+  indoorApiAddress: "http://192.168.160.3:8000/",
 
   // Indoor API endpoints for current and historical data
   indoorApiEndpointCurrent: "getCurrent",

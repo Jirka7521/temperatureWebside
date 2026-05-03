@@ -1,0 +1,28 @@
+services:
+  api:
+    build:
+      context: ./API
+    env_file:
+      - .env
+    restart: always
+    ports:
+      - "${API_PORT:-8000}:8000"
+    networks:
+      - internalWebsides
+
+  web:
+    build:
+      context: ./webside
+    env_file:
+      - .env
+    restart: always
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      - api
+    networks:
+      - internalWebsides
+
+networks:
+  internalWebsides:
+    external: true

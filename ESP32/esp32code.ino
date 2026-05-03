@@ -28,7 +28,7 @@
 // =======================
 //      API Configuration
 // =======================
-const char* API_URL = "API address with endpoint"; // <-- Replace with your API endpoint
+const char* API_URL = "http://192.168.160.2:8000/data/insert"; // <-- Replace with your API endpoint
 
 // =======================
 //   WiFi Credentials
@@ -87,22 +87,20 @@ float getAverage(float arr[], int size) {
 // =======================
 void sendDataToAPI(float temp, float humidity) {
     if (WiFi.status() == WL_CONNECTED) {
-        WiFiClientSecure client;
+        WiFiClient client; // plain HTTP client for http:// endpoints
         HTTPClient http;
 
-        client.setInsecure(); // Skip certificate validation (for HTTPS)
-
-        // Format URL with query parameters
-        String url = String(API_URL) + "?temperature=" + String(temp, 2) +
-                     "&humidity=" + String(humidity, 2);
-
+        // Prepare form-encoded body like: temperature=25.70&humidity=27.00
+        String postData = "temperature=" + String(temp, 2) + "&humidity=" + String(humidity, 2);
         Serial.print("Sending POST to: ");
-        Serial.println(url);
+        Serial.println(API_URL);
+        Serial.print("POST body: ");
+        Serial.println(postData);
 
-        http.begin(client, url);
+        http.begin(client, API_URL);
         http.addHeader("Content-Type", "application/x-www-form-urlencoded");
 
-        int httpResponseCode = http.POST(""); // Empty body, data in URL
+        int httpResponseCode = http.POST(postData);
 
         if (httpResponseCode > 0) {
             String response = http.getString();

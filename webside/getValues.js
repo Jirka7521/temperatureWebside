@@ -104,24 +104,29 @@ class IndoorTemperaturePanel extends Panel {
                 const indoorData = data[0];
                 const temp = parseFloat(indoorData.temperature);
                 const roundedTemp = Math.round(temp * 10) / 10;
-                this.tempElement.textContent = `${roundedTemp}°C`;
-                this.tempElement.className = 'responsive-value';
-                this._applyTemperatureClass(temp);
+                if (this.tempElement) {
+                    this.tempElement.textContent = `${roundedTemp}°C`;
+                    this.tempElement.className = 'responsive-value';
+                    this._applyTemperatureClass(temp);
+                }
 
                 const humidity = parseFloat(indoorData.humidity);
                 const roundedHumidity = Math.round(humidity * 10) / 10;
-                this.humidityElement.textContent = `${roundedHumidity}%`;
-                this.humidityElement.className = 'responsive-value';
+                if (this.humidityElement) {
+                    this.humidityElement.textContent = `${roundedHumidity}%`;
+                    this.humidityElement.className = 'responsive-value';
+                }
 
                 this._checkDataFreshness(new Date(indoorData.date));
-                window.secondsSinceDataRefresh = 0;
+                // store exact timestamp of last successful data refresh
+                window.lastDataRefresh = new Date(indoorData.date).getTime() || Date.now();
             } else {
                 throw new Error("No data received");
             }
         } catch (e) {
             console.error("Error fetching indoor temperature data:", e);
-            this.tempElement.textContent = '--°C';
-            this.humidityElement.textContent = '--%';
+            if (this.tempElement) this.tempElement.textContent = '--°C';
+            if (this.humidityElement) this.humidityElement.textContent = '--%';
         }
     }
 
@@ -239,16 +244,18 @@ class OutdoorTemperaturePanel extends Panel {
         try {
             const outdoor = await this.fetchWeather();
             if (typeof outdoor.temperature === 'number') {
-                this.tempElement.textContent = `${outdoor.temperature}°C`;
-                this.tempElement.className = 'responsive-value';
-                this._applyTemperatureClass(outdoor.temperature);
+                if (this.tempElement) {
+                    this.tempElement.textContent = `${outdoor.temperature}°C`;
+                    this.tempElement.className = 'responsive-value';
+                    this._applyTemperatureClass(outdoor.temperature);
+                }
             } else {
-                this.tempElement.textContent = '--°C';
+                if (this.tempElement) this.tempElement.textContent = '--°C';
             }
             this._updateRainDisplay(outdoor);
         } catch (e) {
-            this.tempElement.textContent = '--°C';
-            this.rainElement.textContent = 'Žádná data o srážkách';
+            if (this.tempElement) this.tempElement.textContent = '--°C';
+            if (this.rainElement) this.rainElement.textContent = 'Žádná data o srážkách';
         }
     }
 
@@ -299,9 +306,14 @@ class DashboardController {
     constructor() {
         // Initialize config manager
         this.configManager = new ConfigManager();
-        window.secondsSinceDataRefresh = 0;
-        // Wait for configuration to load before initializing panels
-        this.initialize();
+        window.lastDataRefresh = Date.now();
+        // Wait for configuration to load before initializing panels.
+        // Ensure DOM is ready so element lookups (getElementById) succeed.
+        if (document.readyState === 'loading') {
+            window.addEventListener('DOMContentLoaded', () => this.initialize());
+        } else {
+            this.initialize();
+        }
         // Setup event listeners for responsive text
         window.addEventListener('resize', this.resizeValueText);
         window.addEventListener('DOMContentLoaded', this.resizeValueText);
@@ -353,21 +365,29 @@ class DashboardController {
      */
     updateCurrentTime() {
         const now = new Date();
-        document.getElementById('current-time').textContent =
-            `Aktuální čas: ${now.toLocaleTimeString('cs-CZ')}`;
+        const el = document.getElementById('current-time');
+        if (el) {
+            el.textContent = `Aktuální čas: ${now.toLocaleTimeString('cs-CZ')}`;
+        }
     }
 
     /**
      * Update the time-since-refresh display
      */
     updateTimeSinceRefresh() {
-        window.secondsSinceDataRefresh++;
         const e = document.getElementById('time-since');
-        if (window.secondsSinceDataRefresh < 60) {
+        if (!e) return;
+        const last = window.lastDataRefresh || Date.now();
+        const diffSeconds = Math.floor((Date.now() - last) / 1000);
+        const minutes = Math.floor(diffSeconds / 60);
+        if (diffSeconds < 60) {
             e.textContent = 'Čas od aktualizace: méně než minuta';
             e.classList.remove('time-expired');
+        } else if (diffSeconds < 300) { // less than 5 minutes
+            e.textContent = `Čas od aktualizace: ${minutes} min`;
+            e.classList.remove('time-expired');
         } else {
-            e.textContent = `Čas od aktualizace: ${Math.floor(window.secondsSinceDataRefresh / 60)} min`;
+            e.textContent = `Čas od aktualizace: ${minutes} min`;
             e.classList.add('time-expired');
         }
     }
