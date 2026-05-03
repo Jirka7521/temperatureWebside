@@ -70,11 +70,8 @@ class TemperatureChart {
      * @private
      */
     _initChart() {
-        // Ensure canvas drawing buffer matches displayed size when possible
-        const clientH = this.chartCanvas.clientHeight;
-        if (clientH > 0) {
-            this.chartCanvas.height = clientH;
-        }
+        // Let Chart.js manage the canvas drawing buffer and sizing.
+        // Avoid manually setting `canvas.height` which can desync with Chart.js resize.
 
         // Create the Chart.js line chart. The chart contains three datasets:
         // 0: outdoor temperature, 1: indoor temperature, 2: indoor humidity
@@ -118,6 +115,18 @@ class TemperatureChart {
             },
             options: this._getChartOptions()
         });
+
+        // Ensure the chart resizes correctly when the window/container changes (including fullscreen)
+        window.addEventListener('resize', () => {
+            try {
+                this.chart.resize();
+            } catch (e) {
+                // ignore if chart not ready
+            }
+        });
+
+        // Trigger an initial resize after creation to sync sizes
+        setTimeout(() => { try { this.chart.resize(); } catch (e) {} }, 50);
     }
 
     /**
@@ -129,7 +138,6 @@ class TemperatureChart {
         return {
             responsive: true,
             maintainAspectRatio: false,
-            aspectRatio: 3, // More horizontally oriented chart
             layout: {
                 padding: { top: 0, right: 4, bottom: 0, left: 4 }
             },
@@ -153,6 +161,8 @@ class TemperatureChart {
                     position: 'right',
                     title: { display: false },
                     ticks: { callback: v => `${v}%`, maxTicksLimit: 5 },
+                    min: 0,
+                    max: 100,
                     grid: { display: false }
                 }
             },

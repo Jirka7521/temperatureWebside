@@ -397,7 +397,7 @@ class DashboardController {
         if (diffSeconds < 60) {
             e.textContent = 'Čas od aktualizace: méně než minuta';
             e.classList.remove('time-expired');
-        } else if (diffSeconds < 300) { // less than 5 minutes
+        } else if (diffSeconds < 600) { // less than 10 minutes
             e.textContent = `Čas od aktualizace: ${minutes} min`;
             e.classList.remove('time-expired');
         } else {
