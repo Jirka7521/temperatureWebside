@@ -1,6 +1,14 @@
 #!/bin/sh
 set -e
 
+# Entrypoint for the static frontend container. This script:
+#  - reads a template config (`config.template.js`) if present
+#  - substitutes environment variables into that template
+#  - emits a concrete `config.js` that the static frontend loads
+# The script also attempts to detect a non-loopback IPv4 address so
+# containers in local networks can auto-wire to a backend running on
+# the host or another container.
+
 : "${OUTDOOR_API_ADDRESS:=https://api.open-meteo.com/v1/forecast}"
 : "${INDOOR_API_ADDRESS:=http://localhost:8000/}"
 : "${INDOOR_API_ENDPOINT_CURRENT:=getCurrent}"

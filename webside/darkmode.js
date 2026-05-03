@@ -1,4 +1,6 @@
 // Manage dark mode toggle and persistence
+// This module applies a `dark` class on <body> and persists the user's
+// preference in localStorage so the UI remains consistent between visits.
 (function(){
     const KEY = 'tempweb:darkmode';
     const button = document.getElementById('themeButton');
@@ -8,6 +10,8 @@
     const SVG_MOON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
     function applyDark(isDark){
+        // Toggle the `dark` class which is used by `style.css` to switch
+        // theme variables and color palettes.
         if(isDark) document.body.classList.add('dark');
         else document.body.classList.remove('dark');
         // update bootstrap bg-light compatibility
@@ -24,6 +28,8 @@
     }
 
     function save(isDark){
+        // Persist preference; localStorage may be unavailable in some
+        // browsers or private modes so wrap in try/catch.
         try{ localStorage.setItem(KEY, isDark ? '1' : '0'); } catch(e){}
     }
 
@@ -37,6 +43,7 @@
         applyDark(isDark);
 
         if(button) {
+            // Clicking the button toggles theme and saves the choice
             button.addEventListener('click', function(){
                 const newState = !document.body.classList.contains('dark');
                 applyDark(newState);

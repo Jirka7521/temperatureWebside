@@ -1,6 +1,17 @@
 ﻿/**
  * Temperature Chart Module
- * Handles chart initialization, data loading, and display.
+ * ------------------------
+ * Responsibilities:
+ * - Initialize Chart.js instance used by the dashboard
+ * - Load outdoor temperature series from the configured weather API
+ * - Load indoor sensor series from the local backend and align it
+ *   with the outdoor time axis
+ * - Provide simple interpolation to create smoother (15-minute) points
+ *
+ * Notes:
+ * - This module expects `configData` to be available via
+ *   `window.configPromise` / `window.configData` (see `getValues.js`).
+ * - Chart.js must be loaded before this script runs.
  */
 
 class TemperatureChart {
@@ -65,6 +76,8 @@ class TemperatureChart {
             this.chartCanvas.height = clientH;
         }
 
+        // Create the Chart.js line chart. The chart contains three datasets:
+        // 0: outdoor temperature, 1: indoor temperature, 2: indoor humidity
         this.chart = new Chart(this.chartCanvas, {
             type: 'line',
             data: {
@@ -174,7 +187,9 @@ class TemperatureChart {
      * @returns {Promise<Object>} Temperature data in the format { times: [], temps: [] }
      */
     async _fetchTemperatureData() {
+        // Wait until configuration is loaded (config.js / config.template.js)
         await configPromise;
+        // `configData` is a global created by the ConfigManager
         const baseUrl = configData?.apiAddress || 'https://api.open-meteo.com/v1/forecast';
         const lat = configData?.position?.latitude || 50.0755;
         const lon = configData?.position?.longitude || 14.4378;
@@ -185,6 +200,7 @@ class TemperatureChart {
         const end_date = now.toISOString().split('T')[0];
 
         const url = `${baseUrl}?latitude=${lat}&longitude=${lon}&hourly=temperature_2m&start_date=${start_date}&end_date=${end_date}&timezone=UTC`;
+        // Fetch hourly temperature data for the last 24 hours
         const response = await fetch(url);
         const data = await response.json();
 
@@ -214,6 +230,7 @@ class TemperatureChart {
             this.temperatureData.labels = [];
             this.temperatureData.values = [];
 
+            // Build 24-hour window (UTC-aware handling is done later)
             const now = new Date();
             const past24 = new Date(now.getTime() - 24 * 3600 * 1000);
 
@@ -228,7 +245,7 @@ class TemperatureChart {
                 }
             }
 
-            // Add actual readings and interpolate between them
+            // Add actual readings and interpolate between hourly measurements
             for (let i = 0; i < filteredTimes.length; i++) {
                 const time = filteredTimes[i];
                 // Add actual reading
@@ -276,6 +293,9 @@ class TemperatureChart {
      * @returns {Array<{time: Date, temp: number}>}
      */
     _interpolateTemperaturePoints(startTime, endTime, startTemp, endTemp, intervals) {
+        // Simple linear interpolation between two known data points.
+        // `intervals` controls how many points are generated between the
+        // two measurements (e.g. 3 -> every 15 minutes for a 1-hour gap).
         const points = [];
         const diff = endTemp - startTemp;
         const intervalMinutes = 15;
@@ -414,6 +434,8 @@ class TemperatureChart {
      * @returns {Date}
      */
     _parseTimeLabel(timeStr) {
+        // Parse a chart label like "14:30" to a Date on the current day.
+        // This is sufficient because charts only show the last 24 hours.
         const today = new Date();
         const [hours, minutes] = timeStr.split(':').map(Number);
         return new Date(today.getFullYear(), today.getMonth(), today.getDate(), hours, minutes);

@@ -1,4 +1,8 @@
 // Inline configuration for the weather and sensor dashboard
+// This file is intended for quick local edits. In containerized
+// deployments `config.template.js` is processed at startup to produce
+// a concrete `config.js` with values taken from environment variables.
+// See `docker-entrypoint.sh` for the substitution logic.
 window.inlineConfig = {
   // Temperature thresholds for color coding
   temperatureThresholds: {
@@ -9,6 +13,7 @@ window.inlineConfig = {
   },
 
   // API endpoint for outdoor weather data
+  // Public weather API used for outdoor forecasts
   apiAddress: "https://api.open-meteo.com/v1/forecast",
 
   // API endpoint for indoor sensor data

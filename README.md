@@ -29,6 +29,7 @@ This repository contains a complete solution for a meteorological dashboard, dev
 │   └── ESP32TempSensor/           # PlatformIO ESP32 firmware project
 ├── webside/                       # Static frontend dashboard
 ├── API/                           # .NET backend API and web projects
+├── API/SensorApi.Python/          # FastAPI Python backend for sensor ingestion
 └── README.md                      # Project documentation
 ```
 
@@ -92,12 +93,73 @@ Note: [ESP32/ESP32TempSensor/include/config.h](ESP32/ESP32TempSensor/include/con
     - Create [ESP32/ESP32TempSensor/include/config.h](ESP32/ESP32TempSensor/include/config.h) from the example template.
     - Build and upload firmware to ESP32.
     - Run serial monitor with the configured baud rate from config.
-    - Deploy a compatible API server to receive/store sensor data.
+        - Deploy a compatible API server to receive/store sensor data.
+
+1.1 **Python Backend (FastAPI)**
+
+- Location: [API/SensorApi.Python](API/SensorApi.Python)
+- The Python backend is a small FastAPI application (under `app/`) used
+    to receive sensor readings and persist them to a PostgreSQL database.
+- It uses `psycopg` for DB access and reads configuration from environment
+    variables (or an optional `.env` file). See `app/db.py` for the expected
+    variables: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`.
+
+Running the Python backend locally:
+
+```bash
+cd API/SensorApi.Python
+python -m pip install -r requirements.txt
+# run with uvicorn (serves on 0.0.0.0:8000)
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+Environment hints:
+
+- To force the host IP reported by the service set `BACKEND_FIXED_IP`.
+- Ensure a PostgreSQL instance is available and environment variables are
+    configured accordingly. The project also includes a `Dockerfile` for
+    containerized deployment.
 
 2. **Dashboard:**
-    - Use files from [webside](webside).
-    - Serve the directory with a static file server, or deploy to a static web hosting service.
-    - Open [webside/index.html](webside/index.html) in your browser or access your deployed web app URL.
+        - Use files from [webside](webside).
+        - Serve the directory with a static file server, or deploy to a static web hosting service.
+        - Open [webside/index.html](webside/index.html) in your browser or access your deployed web app URL.
+
+Serving the dashboard locally (quick options):
+
+```bash
+# from within the `webside` folder
+# Python 3.x simple server
+python -m http.server 8080
+# or use a tiny Node static server
+npx serve -s . -l 8080
+```
+
+Dockerized frontend (build and run):
+
+```bash
+# Build the static image from the `webside` folder
+docker build -t temp-dashboard:latest webside
+
+# Run and expose port 80, optionally override environment variables
+docker run -it --rm -p 8080:80 \
+    -e INDOOR_API_ADDRESS="http://192.168.1.10:8000/" \
+    -e POSITION_LAT=50.0755 -e POSITION_LON=14.4378 \
+    temp-dashboard:latest
+```
+
+Important notes about configuration and Docker:
+
+- The container contains `config.template.js` which is processed by the
+    included `docker-entrypoint.sh` at startup. The entrypoint substitutes
+    environment variables into the template and writes a concrete
+    `config.js` that the frontend loads as `window.inlineConfig`.
+- Useful environment variables (see `webside/docker-entrypoint.sh`):
+    `OUTDOOR_API_ADDRESS`, `INDOOR_API_ADDRESS`, `POSITION_LAT`, `POSITION_LON`,
+    `REFRESH_INTERVAL_MS`, and temperature threshold values used by the UI.
+- If you want to serve the frontend and backend from the same host,
+    set `INDOOR_API_ADDRESS` to the backend base URL (including trailing slash),
+    e.g. `http://backend-host:8000/`.
 
 ### Deploying to Static Web Hosting
 

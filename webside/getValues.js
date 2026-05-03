@@ -1,7 +1,14 @@
 ﻿/**
  * Weather Dashboard Main Logic
- * Manages configuration, temperature panels, and update timers
- * Uses OOP principles for modularity and maintainability
+ * ----------------------------
+ * This file orchestrates the client-side dashboard:
+ * - Loads configuration (inline `config.js` or `config.json`)
+ * - Manages the indoor/outdoor panels and their periodic updates
+ * - Provides helpers for fetching historical ranges used by charts
+ *
+ * The code prefers an inline `window.inlineConfig` object (created by
+ * `config.js` or generated from `config.template.js`) but will fall back
+ * to fetching a `config.json` file if present.
  */
 
 /**
@@ -30,7 +37,7 @@ class ConfigManager {
             return;
         }
 
-        // 2) Otherwise fetch config.json over HTTP
+        // 2) Otherwise attempt to fetch config.json over HTTP
         try {
             const response = await fetch('./config.json');
             if (!response.ok) {
@@ -41,9 +48,12 @@ class ConfigManager {
             this._resolveConfigPromise(this.config);
         } catch (error) {
             console.error('Error loading configuration. Application cannot start without a valid config.json:', error);
+            // If configuration cannot be loaded show a minimal error UI.
             this._rejectConfigPromise(error);
             // Display a user-friendly error message on the page
             try {
+                // Replace page contents with a concise configuration error
+                // so unattended deployments clearly show the problem.
                 document.body.innerHTML = `<div style="color: red; text-align: center; padding: 20px; font-family: sans-serif;">
                                                <h1>Configuration Error</h1>
                                                <p>Could not load config.json. Application cannot start.</p>
@@ -96,6 +106,7 @@ class IndoorTemperaturePanel extends Panel {
      */
     async update() {
         try {
+            // Build current reading URL using configured indoor API base
             const apiUrl = this.config.indoorApiAddress + this.config.indoorApiEndpointCurrent;
             const response = await fetch(apiUrl);
             const data = await response.json();
@@ -117,6 +128,7 @@ class IndoorTemperaturePanel extends Panel {
                     this.humidityElement.className = 'responsive-value';
                 }
 
+                // Update freshness indicator and store the exact timestamp
                 this._checkDataFreshness(new Date(indoorData.date));
                 // store exact timestamp of last successful data refresh
                 window.lastDataRefresh = new Date(indoorData.date).getTime() || Date.now();
@@ -186,6 +198,8 @@ class IndoorTemperaturePanel extends Panel {
         const base = this.config.indoorApiAddress + this.config.indoorApiEndpointRange;
         const params = this.config.indoorApiParams;
         const url = `${base}?${params.start}=${encodeURIComponent(start)}&${params.end}=${encodeURIComponent(end)}&${params.interval}=${interval}`;
+        // Return parsed JSON time-series. The backend returns an array of
+        // readings where each item contains at least `date` and `temperature`.
         const resp = await fetch(url);
         return resp.json();
     }
