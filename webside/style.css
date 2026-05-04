@@ -36,14 +36,14 @@ html, body {
     height: 100%;
     margin: 0;
     padding: 0;
-    overflow: hidden; /* Prevent scrolling by default */
+    overflow: auto; /* Allow scrolling and let the page expand to full height */
 }
 
 /* Ensure body and main container always fill viewport height */
 body, .container-fluid {
-    height: 100vh;
-    min-height: 100vh;
-    max-height: 100vh; /* Force container to fit viewport */
+    min-height: 100vh; /* Ensure at least viewport height */
+    height: auto; /* Allow content to expand beyond viewport when needed */
+    max-height: none; /* Remove forced cap so server/container can stretch full screen */
 }
 
 /* Dashboard container uses flex column layout */

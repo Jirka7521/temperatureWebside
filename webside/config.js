@@ -22,7 +22,7 @@ window.inlineConfig = {
   // Use the server host reachable by clients. For local testing the backend
   // is usually available on the host at port 8000 (see docker-compose). If
   // you run the frontend in a browser on the same machine use localhost.
-  indoorApiAddress: "http://localhost:8000/",
+  indoorApiAddress: "http://192.168.160.2:8000/",
 
   // Indoor API endpoints for current and historical data
   indoorApiEndpointCurrent: "getCurrent",

@@ -224,12 +224,12 @@ class TemperatureChart {
      */
     async _fetchTemperatureData() {
         // Wait until configuration is loaded (config.js / config.template.js)
-        await configPromise;
-        // `configData` is a global created by the ConfigManager
+        await window.configPromise;
+        // Read config from the global `window.configData` that the ConfigManager sets
         // Use the Open-Meteo historical archive API for past data
-        const baseUrl = configData?.archiveApiAddress || 'https://archive-api.open-meteo.com/v1/archive';
-        const lat = configData?.position?.latitude || 50.0755;
-        const lon = configData?.position?.longitude || 14.4378;
+        const baseUrl = window.configData?.archiveApiAddress || 'https://archive-api.open-meteo.com/v1/archive';
+        const lat = window.configData?.position?.latitude || 50.0755;
+        const lon = window.configData?.position?.longitude || 14.4378;
 
         const now = new Date();
         const past = new Date(now.getTime() - 24 * 3600 * 1000);
@@ -427,13 +427,21 @@ class TemperatureChart {
                 }
 
                 if (nearestIndex !== -1) {
-                    this.indoorData[i] = indoorDataPoints[nearestIndex].temp;
-                    this.indoorHumidityData[i] = indoorDataPoints[nearestIndex].humidity;
+                    // Only map the data point if it's reasonably close to the chart time.
+                    // `interval` is in seconds (15*60). Use half the sampling interval as threshold.
+                    const thresholdMs = (interval * 1000) / 2;
+                    if (minDiff <= thresholdMs) {
+                        this.indoorData[i] = indoorDataPoints[nearestIndex].temp;
+                        this.indoorHumidityData[i] = indoorDataPoints[nearestIndex].humidity;
+                    } else {
+                        // leave as null -> Chart.js will skip plotting this point
+                        this.indoorData[i] = null;
+                        this.indoorHumidityData[i] = null;
+                    }
                 }
             }
-
-            // Fill any remaining null values with nearest values (forward and backward fill)
-            this._fillMissingIndoorData();
+            // Do not forward/backfill missing indoor values so that absent readings
+            // result in no plotted point. Chart.js will automatically skip nulls.
         } catch (error) {
             console.error('Error fetching indoor temperature data:', error);
             this.indoorData = Array(this.temperatureData.labels.length).fill(null);
@@ -488,9 +496,27 @@ class TemperatureChart {
         // Update chart data directly using simplified structures
         this.chart.data.labels = this.temperatureData.labels;
         this.chart.data.datasets[0].data = this.temperatureData.values;
-        this.chart.data.datasets[1].data = this.indoorData;
+
+        // Only show indoor temperature dataset if there is at least one valid value
+        const hasIndoor = Array.isArray(this.indoorData) && this.indoorData.some(v => v !== null && v !== undefined);
+        if (hasIndoor) {
+            this.chart.data.datasets[1].data = this.indoorData;
+            this.chart.data.datasets[1].hidden = false;
+        } else {
+            this.chart.data.datasets[1].data = [];
+            this.chart.data.datasets[1].hidden = true;
+        }
+
+        // Same for indoor humidity (dataset index 2)
         if (this.chart.data.datasets[2]) {
-            this.chart.data.datasets[2].data = this.indoorHumidityData;
+            const hasHumidity = Array.isArray(this.indoorHumidityData) && this.indoorHumidityData.some(v => v !== null && v !== undefined);
+            if (hasHumidity) {
+                this.chart.data.datasets[2].data = this.indoorHumidityData;
+                this.chart.data.datasets[2].hidden = false;
+            } else {
+                this.chart.data.datasets[2].data = [];
+                this.chart.data.datasets[2].hidden = true;
+            }
         }
 
         this.chart.options.plugins.title = {
