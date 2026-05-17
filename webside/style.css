@@ -277,15 +277,13 @@ body, .container-fluid {
     font-size: 1.1rem !important; /* Override Bootstrap */
 }
 
-/* Chart container fills available space */
+/* Chart container fills available space; flexbox controls sizing so no fixed max-height */
 .chart-container {
     position: relative;
     width: 100%;
     flex-grow: 1;
-    overflow: auto;
-    /* Prevent the chart from exceeding viewport height; leave room for top tiles/status */
-    max-height: calc(100vh - 300px);
-    height: 100%; /* Take all available height */
+    overflow: hidden;
+    height: 100%;
 }
 
 /* Weather chart sizing */

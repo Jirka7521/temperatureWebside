@@ -37,7 +37,7 @@ class TemperatureChart {
         }
 
         // Data structures for storing chart data
-        this.temperatureData = { labels: [], values: [] };
+        this.temperatureData = { labels: [], values: [], times: [] };
         this.indoorData = [];
         this.indoorHumidityData = [];
 
@@ -96,6 +96,7 @@ class TemperatureChart {
                             borderColor: 'rgba(220, 53, 69, 1)',
                             backgroundColor: 'rgba(220, 53, 69, 0.2)',
                         fill: true,
+                        spanGaps: true,
                         tension: 0.2,
                         borderWidth: 2,
                         pointRadius: 3
@@ -106,6 +107,7 @@ class TemperatureChart {
                         borderColor: 'rgba(54, 162, 235, 1)',
                         backgroundColor: 'rgba(54, 162, 235, 0.2)',
                         fill: false,
+                        spanGaps: true,
                         tension: 0.2,
                         borderWidth: 2,
                         pointRadius: 2,
@@ -133,8 +135,13 @@ class TemperatureChart {
             });
         }
 
-        // Also handle fullscreen changes which can alter container sizing
-        const fsHandler = () => { try { this.chart.resize(); } catch (e) {} };
+        // Also handle fullscreen changes which can alter container sizing.
+        // Fire resize immediately and after two delays to catch browser layout settling.
+        const fsHandler = () => {
+            try { this.chart.resize(); } catch (e) {}
+            setTimeout(() => { try { this.chart.resize(); } catch (e) {} }, 150);
+            setTimeout(() => { try { this.chart.resize(); } catch (e) {} }, 400);
+        };
         document.addEventListener('fullscreenchange', fsHandler);
 
         // Store listeners so they can be cleaned up if necessary
@@ -165,7 +172,7 @@ class TemperatureChart {
             responsive: true,
             maintainAspectRatio: false,
             layout: {
-                padding: { top: 0, right: 4, bottom: 0, left: 4 }
+                padding: { top: 8, right: 16, bottom: 8, left: 10 }
             },
             scales: {
                 x: {
@@ -262,58 +269,53 @@ class TemperatureChart {
     async _fetchDayData() {
         try {
             const data = await this._fetchTemperatureData();
-            if (!data) return;
 
-            const { times, temps } = data;
-            this.temperatureData.labels = [];
-            this.temperatureData.values = [];
-
-            // Build 24-hour window (UTC-aware handling is done later)
             const now = new Date();
             const past24 = new Date(now.getTime() - 24 * 3600 * 1000);
 
-            // Filter times and temps to only include those within the last 24 hours
-            let filteredTimes = [];
-            let filteredTemps = [];
-            for (let i = 0; i < times.length; i++) {
-                // Parse API time string (timezone=auto => local timestamps) directly
-                const time = new Date(times[i]);
-                if (time >= past24 && time <= now) {
-                    filteredTimes.push(time);
-                    filteredTemps.push(temps[i]);
-                }
+            // Build a fixed 15-minute grid that always spans exactly the last 24 hours.
+            // This guarantees the X-axis covers the full window regardless of API data gaps.
+            const grid = [];
+            for (let t = new Date(past24); t <= now; t = new Date(t.getTime() + 15 * 60 * 1000)) {
+                grid.push(new Date(t));
             }
 
-            // Add actual readings and interpolate between hourly measurements
-            for (let i = 0; i < filteredTimes.length; i++) {
-                const time = filteredTimes[i];
-                // Add actual reading
-                this.temperatureData.labels.push(
-                    time.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })
-                );
-                this.temperatureData.values.push(filteredTemps[i]);
+            this.temperatureData.labels = grid.map(t =>
+                t.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })
+            );
+            this.temperatureData.times = grid;
+            this.temperatureData.values = Array(grid.length).fill(null);
 
-                // Interpolate between current and next point if available
-                if (i < filteredTimes.length - 1) {
-                    const currentTemp = filteredTemps[i];
-                    const nextTemp = filteredTemps[i + 1];
-                    const interpolatedPoints = this._interpolateTemperaturePoints(
-                        time,
-                        filteredTimes[i + 1],
-                        currentTemp,
-                        nextTemp,
-                        3 // 3 intervals (15, 30, 45 min)
+            if (!data) return;
+
+            // Convert hourly API data to sorted Date+temp pairs
+            const hourly = [];
+            for (let i = 0; i < data.times.length; i++) {
+                const t = new Date(data.times[i]);
+                if (!isNaN(t) && data.temps[i] !== null) {
+                    hourly.push({ time: t, temp: data.temps[i] });
+                }
+            }
+            hourly.sort((a, b) => a.time - b.time);
+            if (!hourly.length) return;
+
+            // For each grid point, linearly interpolate between the two nearest hourly readings
+            for (let i = 0; i < grid.length; i++) {
+                const gt = grid[i];
+                let before = null, after = null;
+                for (const pt of hourly) {
+                    if (pt.time <= gt) before = pt;
+                    else if (!after) { after = pt; break; }
+                }
+                if (before && after) {
+                    const ratio = (gt - before.time) / (after.time - before.time);
+                    this.temperatureData.values[i] = parseFloat(
+                        (before.temp + ratio * (after.temp - before.temp)).toFixed(1)
                     );
-                    for (const point of interpolatedPoints) {
-                        this.temperatureData.labels.push(
-                            point.time.toLocaleTimeString('cs-CZ', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                hour12: false
-                            })
-                        );
-                        this.temperatureData.values.push(point.temp);
-                    }
+                } else if (before) {
+                    this.temperatureData.values[i] = before.temp;
+                } else if (after) {
+                    this.temperatureData.values[i] = after.temp;
                 }
             }
         } catch (error) {
@@ -384,24 +386,26 @@ class TemperatureChart {
             this.indoorData = Array(this.temperatureData.labels.length).fill(null);
             this.indoorHumidityData = Array(this.temperatureData.labels.length).fill(null);
 
-            // Create array of time points from labels (as Date objects)
-            const chartTimePoints = this.temperatureData.labels.map(timeStr => {
-                return this._parseTimeLabel(timeStr);
-            });
+            // Use stored Date objects so times crossing midnight align correctly
+            const chartTimePoints = this.temperatureData.times;
 
             // Convert temperature series to array of {time, temp} objects
             const indoorDataPoints = [];
             for (let i = 0; i < series.length; i++) {
                 const item = series[i];
-                // Convert UTC time to local
-                const utcTime = new Date(item.date || item.timestamp);
-                const localTime = new Date(utcTime.getTime() - utcTime.getTimezoneOffset() * 60000);
+                // Parse UTC timestamp; append 'Z' if absent so the browser never
+                // misinterprets it as local time.
+                const raw = item.date || item.timestamp;
+                const timeStr = (typeof raw === 'string' && !raw.endsWith('Z') && !/[+-]\d{2}:\d{2}$/.test(raw))
+                    ? raw + 'Z'
+                    : raw;
+                const time = new Date(timeStr);
 
                 // Skip data outside our 24-hour window
-                if (localTime < past24 || localTime > now) continue;
+                if (isNaN(time) || time < past24 || time > now) continue;
 
                 indoorDataPoints.push({
-                    time: localTime,
+                    time,
                     temp: parseFloat(item.temperature),
                     humidity: item.humidity !== undefined ? parseFloat(item.humidity) : null
                 });
@@ -429,7 +433,7 @@ class TemperatureChart {
                 if (nearestIndex !== -1) {
                     // Only map the data point if it's reasonably close to the chart time.
                     // `interval` is in seconds (15*60). Use half the sampling interval as threshold.
-                    const thresholdMs = (interval * 1000) / 2;
+                    const thresholdMs = (interval * 1000) / 1.2;
                     if (minDiff <= thresholdMs) {
                         this.indoorData[i] = indoorDataPoints[nearestIndex].temp;
                         this.indoorHumidityData[i] = indoorDataPoints[nearestIndex].humidity;
