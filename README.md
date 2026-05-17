@@ -172,6 +172,17 @@ docker compose logs -f
 docker compose down
 ```
 
+#### Redeploying after code changes
+
+```bash
+# Remove running containers and old images, then rebuild and restart both services
+docker compose down --rmi all
+docker compose up -d --build
+
+# Verify both containers are running
+docker compose ps
+```
+
 If you prefer to build and run manually without docker-compose, use the commands below.
 
 ```bash

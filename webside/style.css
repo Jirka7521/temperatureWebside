@@ -301,6 +301,31 @@ body, .container-fluid {
     font-size: 0.875rem;
 }
 
+/* Chart mode toggle buttons (24h / 7d) */
+.chart-mode-btn {
+    background: transparent;
+    border: 1px solid var(--text-muted);
+    color: var(--text-muted);
+    border-radius: 4px;
+    padding: 0.2rem 0.55rem;
+    font-size: clamp(1rem, 1.5vw, 1.35rem);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.18s, color 0.18s, border-color 0.18s;
+    line-height: 1.4;
+}
+
+.chart-mode-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+}
+
+.chart-mode-btn:hover:not(.active) {
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
 /* Temperature indicator text (muted) */
 .text-muted {
     color: var(--text-muted) !important; /* ensure contrast in dark mode, override Bootstrap */
@@ -346,6 +371,11 @@ body, .container-fluid {
 @media (max-width: 767.98px) {
     /* Hide chart row on phones to keep focus on key tiles */
     .row-grow-3 {
+        display: none !important;
+    }
+
+    /* Hide chart mode toggle when chart is not visible */
+    .chart-mode-toggle-group {
         display: none !important;
     }
 

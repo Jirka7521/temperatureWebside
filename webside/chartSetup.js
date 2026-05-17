@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Temperature Chart Module
  * ------------------------
  * Responsibilities:
@@ -6,7 +6,7 @@
  * - Load outdoor temperature series from the configured weather API
  * - Load indoor sensor series from the local backend and align it
  *   with the outdoor time axis
- * - Provide simple interpolation to create smoother (15-minute) points
+ * - Support switching between 24-hour (day) and 7-day (week) views
  *
  * Notes:
  * - This module expects `configData` to be available via
@@ -15,54 +15,58 @@
  */
 
 class TemperatureChart {
-    /**
-     * Initialize chart controller.
-     * Sets up chart, loads data, and configures refresh.
-     */
     constructor() {
-        // Chart.js chart instance
         this.chart = null;
-        // Canvas element for rendering the chart
         this.chartCanvas = document.getElementById('weatherChart');
+        this.currentMode = 'day'; // 'day' | 'week'
 
-        // Ensure the canvas element exists and set a default height if needed
         if (!this.chartCanvas) {
             console.error('Canvas element with id "weatherChart" not found.');
             return;
         }
-        // Ensure canvas fills its container; fallback to 300px if container has no height yet
         this.chartCanvas.style.width = '100%';
         if (!this.chartCanvas.style.height) {
             this.chartCanvas.style.height = '100%';
         }
 
-        // Data structures for storing chart data
         this.temperatureData = { labels: [], values: [], times: [] };
         this.indoorData = [];
         this.indoorHumidityData = [];
 
-        // Initialize chart, load data, and set up refresh timers
         this._initChart();
         this._loadData();
         this._setupRefreshTimers();
-
-        // UI: Mark day view as active and hide week view button if present
-        this._setupUI();
+        this._setupModeToggle();
     }
 
     /**
-     * Set up UI elements for day/week view.
+     * Bind chart mode toggle buttons (24h / 7d).
      * @private
      */
-    _setupUI() {
-        const dayViewButton = document.getElementById('dayView');
-        if (dayViewButton) {
-            dayViewButton.classList.add('active');
-        }
-        const weekViewButton = document.getElementById('weekView');
-        if (weekViewButton) {
-            weekViewButton.style.display = 'none';
-        }
+    _setupModeToggle() {
+        const dayBtn = document.getElementById('chartDay');
+        const weekBtn = document.getElementById('chartWeek');
+        if (!dayBtn || !weekBtn) return;
+
+        dayBtn.addEventListener('click', () => {
+            if (this.currentMode === 'day') return;
+            this.currentMode = 'day';
+            dayBtn.classList.add('active');
+            dayBtn.setAttribute('aria-pressed', 'true');
+            weekBtn.classList.remove('active');
+            weekBtn.setAttribute('aria-pressed', 'false');
+            this._loadData();
+        });
+
+        weekBtn.addEventListener('click', () => {
+            if (this.currentMode === 'week') return;
+            this.currentMode = 'week';
+            weekBtn.classList.add('active');
+            weekBtn.setAttribute('aria-pressed', 'true');
+            dayBtn.classList.remove('active');
+            dayBtn.setAttribute('aria-pressed', 'false');
+            this._loadData();
+        });
     }
 
     /**
@@ -70,11 +74,6 @@ class TemperatureChart {
      * @private
      */
     _initChart() {
-        // Let Chart.js manage the canvas drawing buffer and sizing.
-        // Avoid manually setting `canvas.height` which can desync with Chart.js resize.
-
-        // Create the Chart.js line chart. The chart contains three datasets:
-        // 0: outdoor temperature, 1: indoor temperature, 2: indoor humidity
         this.chart = new Chart(this.chartCanvas, {
             type: 'line',
             data: {
@@ -82,9 +81,9 @@ class TemperatureChart {
                 datasets: [
                     {
                         label: 'Venkovní teplota (°C)',
-                            data: [],
-                            borderColor: 'rgba(255, 193, 7, 1)',
-                            backgroundColor: 'rgba(255, 193, 7, 0.2)',
+                        data: [],
+                        borderColor: 'rgba(255, 193, 7, 1)',
+                        backgroundColor: 'rgba(255, 193, 7, 0.2)',
                         fill: true,
                         tension: 0.2,
                         borderWidth: 2,
@@ -92,16 +91,16 @@ class TemperatureChart {
                     },
                     {
                         label: 'Vnitřní teplota (°C)',
-                            data: [],
-                            borderColor: 'rgba(220, 53, 69, 1)',
-                            backgroundColor: 'rgba(220, 53, 69, 0.2)',
+                        data: [],
+                        borderColor: 'rgba(220, 53, 69, 1)',
+                        backgroundColor: 'rgba(220, 53, 69, 0.2)',
                         fill: true,
                         spanGaps: true,
                         tension: 0.2,
                         borderWidth: 2,
                         pointRadius: 3
-                    }
-                    ,{
+                    },
+                    {
                         label: 'Vnitřní vlhkost (%)',
                         data: [],
                         borderColor: 'rgba(54, 162, 235, 1)',
@@ -118,47 +117,32 @@ class TemperatureChart {
             options: this._getChartOptions()
         });
 
-        // Ensure the chart resizes correctly when the window/container changes (including fullscreen)
-        // Use ResizeObserver on the chart container for more reliable sizing than window.resize alone.
         const container = this.chartCanvas.parentElement || this.chartCanvas;
         try {
             this._resizeObserver = new ResizeObserver(() => {
-                try {
-                    this.chart.resize();
-                } catch (e) {}
+                try { this.chart.resize(); } catch (e) {}
             });
             this._resizeObserver.observe(container);
         } catch (e) {
-            // ResizeObserver may not be available on older browsers — fall back to window resize
             window.addEventListener('resize', () => {
                 try { this.chart.resize(); } catch (e) {}
             });
         }
 
-        // Also handle fullscreen changes which can alter container sizing.
-        // Fire resize immediately and after two delays to catch browser layout settling.
         const fsHandler = () => {
             try { this.chart.resize(); } catch (e) {}
             setTimeout(() => { try { this.chart.resize(); } catch (e) {} }, 150);
             setTimeout(() => { try { this.chart.resize(); } catch (e) {} }, 400);
         };
         document.addEventListener('fullscreenchange', fsHandler);
-
-        // Store listeners so they can be cleaned up if necessary
         this._fullscreenHandler = fsHandler;
 
-        // Cleanup handler to disconnect observers/listeners when page unloads
         this._cleanup = () => {
-            try {
-                if (this._resizeObserver) this._resizeObserver.disconnect();
-            } catch (e) {}
-            try {
-                if (this._fullscreenHandler) document.removeEventListener('fullscreenchange', this._fullscreenHandler);
-            } catch (e) {}
+            try { if (this._resizeObserver) this._resizeObserver.disconnect(); } catch (e) {}
+            try { if (this._fullscreenHandler) document.removeEventListener('fullscreenchange', this._fullscreenHandler); } catch (e) {}
         };
         window.addEventListener('unload', this._cleanup);
 
-        // Trigger an initial resize after creation to sync sizes
         setTimeout(() => { try { this.chart.resize(); } catch (e) {} }, 50);
     }
 
@@ -181,7 +165,7 @@ class TemperatureChart {
                     ticks: {
                         maxRotation: 0,
                         autoSkip: true,
-                        maxTicksLimit: 25 // Show more time labels
+                        maxTicksLimit: 25
                     }
                 },
                 y: {
@@ -214,26 +198,26 @@ class TemperatureChart {
     }
 
     /**
-     * Load temperature and indoor data for the day view.
+     * Load data and refresh chart for the active mode.
      * @private
      */
     async _loadData() {
-        await this._fetchDayData();
-        await this._fetchIndoorDayData();
+        if (this.currentMode === 'day') {
+            await this._fetchDayData();
+            await this._fetchIndoorDayData();
+        } else {
+            await this._fetchWeekData();
+            await this._fetchIndoorWeekData();
+        }
         this._updateChart();
     }
 
     /**
-     * Fetch temperature data for the past 24 hours.
-     * Supports multiple response formats.
+     * Fetch hourly outdoor temperature for the past 24 hours.
      * @private
-     * @returns {Promise<Object>} Temperature data in the format { times: [], temps: [] }
      */
     async _fetchTemperatureData() {
-        // Wait until configuration is loaded (config.js / config.template.js)
         await window.configPromise;
-        // Read config from the global `window.configData` that the ConfigManager sets
-        // Use the Open-Meteo historical archive API for past data
         const baseUrl = window.configData?.archiveApiAddress || 'https://archive-api.open-meteo.com/v1/archive';
         const lat = window.configData?.position?.latitude || 50.0755;
         const lon = window.configData?.position?.longitude || 14.4378;
@@ -243,27 +227,18 @@ class TemperatureChart {
         const start_date = past.toISOString().split('T')[0];
         const end_date = now.toISOString().split('T')[0];
 
-        // Request hourly historical temperature; timezone=auto returns times in local timezone
         const url = `${baseUrl}?latitude=${lat}&longitude=${lon}&hourly=temperature_2m&start_date=${start_date}&end_date=${end_date}&timezone=auto`;
-        // Fetch hourly temperature data for the last 24 hours
         const response = await fetch(url);
         const data = await response.json();
 
-        // Handle array or object response
         if (Array.isArray(data)) {
-            const times = data.map(item => item.date);
-            const temps = data.map(item => item.temperature);
-            return { times, temps };
+            return { times: data.map(item => item.date), temps: data.map(item => item.temperature) };
         }
-        return {
-            times: data.hourly.time,
-            temps: data.hourly.temperature_2m
-        };
+        return { times: data.hourly.time, temps: data.hourly.temperature_2m };
     }
 
     /**
-     * Fetch and process temperature data for the past 24 hours.
-     * Interpolates values for 15-minute intervals.
+     * Build 15-minute outdoor grid for the past 24 hours.
      * @private
      */
     async _fetchDayData() {
@@ -273,8 +248,6 @@ class TemperatureChart {
             const now = new Date();
             const past24 = new Date(now.getTime() - 24 * 3600 * 1000);
 
-            // Build a fixed 15-minute grid that always spans exactly the last 24 hours.
-            // This guarantees the X-axis covers the full window regardless of API data gaps.
             const grid = [];
             for (let t = new Date(past24); t <= now; t = new Date(t.getTime() + 15 * 60 * 1000)) {
                 grid.push(new Date(t));
@@ -288,7 +261,6 @@ class TemperatureChart {
 
             if (!data) return;
 
-            // Convert hourly API data to sorted Date+temp pairs
             const hourly = [];
             for (let i = 0; i < data.times.length; i++) {
                 const t = new Date(data.times[i]);
@@ -299,153 +271,166 @@ class TemperatureChart {
             hourly.sort((a, b) => a.time - b.time);
             if (!hourly.length) return;
 
-            // For each grid point, linearly interpolate between the two nearest hourly readings
-            for (let i = 0; i < grid.length; i++) {
-                const gt = grid[i];
-                let before = null, after = null;
-                for (const pt of hourly) {
-                    if (pt.time <= gt) before = pt;
-                    else if (!after) { after = pt; break; }
-                }
-                if (before && after) {
-                    const ratio = (gt - before.time) / (after.time - before.time);
-                    this.temperatureData.values[i] = parseFloat(
-                        (before.temp + ratio * (after.temp - before.temp)).toFixed(1)
-                    );
-                } else if (before) {
-                    this.temperatureData.values[i] = before.temp;
-                } else if (after) {
-                    this.temperatureData.values[i] = after.temp;
-                }
-            }
+            this._interpolateOntoGrid(grid, hourly, this.temperatureData.values);
         } catch (error) {
             console.error('Error fetching day temperature data:', error);
         }
     }
 
     /**
-     * Interpolate temperature values between two time points.
-     * @private
-     * @param {Date} startTime - Start time
-     * @param {Date} endTime - End time
-     * @param {number} startTemp - Temperature at start
-     * @param {number} endTemp - Temperature at end
-     * @param {number} intervals - Number of intervals (e.g., 3 for 15, 30, 45 min)
-     * @returns {Array<{time: Date, temp: number}>}
-     */
-    _interpolateTemperaturePoints(startTime, endTime, startTemp, endTemp, intervals) {
-        // Simple linear interpolation between two known data points.
-        // `intervals` controls how many points are generated between the
-        // two measurements (e.g. 3 -> every 15 minutes for a 1-hour gap).
-        const points = [];
-        const diff = endTemp - startTemp;
-        const intervalMinutes = 15;
-        for (let j = 1; j <= intervals; j++) {
-            const interpolatedTime = new Date(startTime);
-            interpolatedTime.setMinutes(startTime.getMinutes() + j * intervalMinutes);
-            // Only add if before next full data point
-            if (interpolatedTime.getTime() >= endTime.getTime()) break;
-            // Linear interpolation
-            const temp = parseFloat((startTemp + (diff * j / (intervals + 1))).toFixed(1));
-            points.push({ time: interpolatedTime, temp });
-        }
-        return points;
-    }
-
-    /**
-     * (Unused) Add interpolated temperature values between hourly measurements.
+     * Build 2-hour outdoor grid for the past 7 days (~84 points, same density as 24h view).
      * @private
      */
-    _addInterpolatedValues(index, times, temps) {
-        // ...existing code...
-    }
-
-    /**
-     * Fetch indoor temperature data for the past day and align with chart labels.
-     * @private
-     */
-    async _fetchIndoorDayData() {
+    async _fetchWeekData() {
         try {
             await window.configPromise;
-            const cfg = window.configData;
+            const baseUrl = window.configData?.archiveApiAddress || 'https://archive-api.open-meteo.com/v1/archive';
+            const lat = window.configData?.position?.latitude || 50.0755;
+            const lon = window.configData?.position?.longitude || 14.4378;
+
             const now = new Date();
-            const past24 = new Date(now.getTime() - 24 * 3600 * 1000);
-            // Request data in UTC from the API
-            const start = past24.toISOString();
-            const end = now.toISOString();
-            const interval = 15 * 60; // 15-minute samples
-            const base = cfg.indoorApiAddress + cfg.indoorApiEndpointRange;
-            const p = cfg.indoorApiParams;
-            const url = `${base}?${p.start}=${start}&${p.end}=${end}&${p.interval}=${interval}`;
-            const res = await fetch(url);
-            const series = await res.json();
+            const past7 = new Date(now.getTime() - 7 * 24 * 3600 * 1000);
+            past7.setHours(0, 0, 0, 0); // snap to midnight so grid always lands on 00:00
+            const start_date = past7.toISOString().split('T')[0];
+            const end_date = now.toISOString().split('T')[0];
 
-            if (!series || !series.length) return;
+            const url = `${baseUrl}?latitude=${lat}&longitude=${lon}&hourly=temperature_2m&start_date=${start_date}&end_date=${end_date}&timezone=auto`;
+            const response = await fetch(url);
+            const data = await response.json();
 
-            // Reset indoor data array to match the length of temperatureData labels
-            this.indoorData = Array(this.temperatureData.labels.length).fill(null);
-            this.indoorHumidityData = Array(this.temperatureData.labels.length).fill(null);
-
-            // Use stored Date objects so times crossing midnight align correctly
-            const chartTimePoints = this.temperatureData.times;
-
-            // Convert temperature series to array of {time, temp} objects
-            const indoorDataPoints = [];
-            for (let i = 0; i < series.length; i++) {
-                const item = series[i];
-                // Parse UTC timestamp; append 'Z' if absent so the browser never
-                // misinterprets it as local time.
-                const raw = item.date || item.timestamp;
-                const timeStr = (typeof raw === 'string' && !raw.endsWith('Z') && !/[+-]\d{2}:\d{2}$/.test(raw))
-                    ? raw + 'Z'
-                    : raw;
-                const time = new Date(timeStr);
-
-                // Skip data outside our 24-hour window
-                if (isNaN(time) || time < past24 || time > now) continue;
-
-                indoorDataPoints.push({
-                    time,
-                    temp: parseFloat(item.temperature),
-                    humidity: item.humidity !== undefined ? parseFloat(item.humidity) : null
-                });
-            }
-
-            // Sort by time to ensure chronological order
-            indoorDataPoints.sort((a, b) => a.time - b.time);
-            if (!indoorDataPoints.length) return;
-
-            // For each chart time point, pick the nearest data point
-            for (let i = 0; i < chartTimePoints.length; i++) {
-                const chartTime = chartTimePoints[i];
-                let nearestIndex = -1;
-                let minDiff = Infinity;
-
-                // Find the data point whose timestamp is closest to chartTime
-                for (let j = 0; j < indoorDataPoints.length; j++) {
-                    const diff = Math.abs(indoorDataPoints[j].time.getTime() - chartTime.getTime());
-                    if (diff < minDiff) {
-                        minDiff = diff;
-                        nearestIndex = j;
-                    }
+            const hourly = [];
+            if (Array.isArray(data)) {
+                for (const item of data) {
+                    const t = new Date(item.date);
+                    if (!isNaN(t) && item.temperature !== null) hourly.push({ time: t, temp: item.temperature });
                 }
-
-                if (nearestIndex !== -1) {
-                    // Only map the data point if it's reasonably close to the chart time.
-                    // `interval` is in seconds (15*60). Use half the sampling interval as threshold.
-                    const thresholdMs = (interval * 1000) / 1.2;
-                    if (minDiff <= thresholdMs) {
-                        this.indoorData[i] = indoorDataPoints[nearestIndex].temp;
-                        this.indoorHumidityData[i] = indoorDataPoints[nearestIndex].humidity;
-                    } else {
-                        // leave as null -> Chart.js will skip plotting this point
-                        this.indoorData[i] = null;
-                        this.indoorHumidityData[i] = null;
+            } else {
+                for (let i = 0; i < data.hourly.time.length; i++) {
+                    const t = new Date(data.hourly.time[i]);
+                    if (!isNaN(t) && data.hourly.temperature_2m[i] !== null) {
+                        hourly.push({ time: t, temp: data.hourly.temperature_2m[i] });
                     }
                 }
             }
-            // Do not forward/backfill missing indoor values so that absent readings
-            // result in no plotted point. Chart.js will automatically skip nulls.
+            hourly.sort((a, b) => a.time - b.time);
+
+            // 2-hour step → ~84 points over 7 days (matches 96 points over 24h at 15 min)
+            const stepMs = 2 * 60 * 60 * 1000;
+            const grid = [];
+            for (let t = new Date(past7); t <= now; t = new Date(t.getTime() + stepMs)) {
+                grid.push(new Date(t));
+            }
+
+            this.temperatureData.labels = grid.map(t =>
+                t.toLocaleDateString('cs-CZ', { day: '2-digit', month: '2-digit' }) + ' ' +
+                t.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })
+            );
+            this.temperatureData.times = grid;
+            this.temperatureData.values = Array(grid.length).fill(null);
+
+            if (!hourly.length) return;
+
+            this._interpolateOntoGrid(grid, hourly, this.temperatureData.values);
+        } catch (error) {
+            console.error('Error fetching week temperature data:', error);
+        }
+    }
+
+    /**
+     * Linear interpolation from hourly data onto an arbitrary time grid.
+     * Mutates the provided `output` array in place.
+     * @private
+     */
+    _interpolateOntoGrid(grid, hourly, output) {
+        for (let i = 0; i < grid.length; i++) {
+            const gt = grid[i];
+            let before = null, after = null;
+            for (const pt of hourly) {
+                if (pt.time <= gt) before = pt;
+                else if (!after) { after = pt; break; }
+            }
+            if (before && after) {
+                const ratio = (gt - before.time) / (after.time - before.time);
+                output[i] = parseFloat((before.temp + ratio * (after.temp - before.temp)).toFixed(1));
+            } else if (before) {
+                output[i] = before.temp;
+            } else if (after) {
+                output[i] = after.temp;
+            }
+        }
+    }
+
+    /**
+     * Shared indoor fetch used by both day and week modes.
+     * Aligns sensor readings onto the current `temperatureData` time grid.
+     * @private
+     * @param {number} windowMs - Time window in milliseconds
+     * @param {number} interval - Sample interval in seconds
+     */
+    async _fetchIndoorSeriesData(windowMs, interval) {
+        await window.configPromise;
+        const cfg = window.configData;
+        const now = new Date();
+        const pastWindow = new Date(now.getTime() - windowMs);
+        const start = pastWindow.toISOString();
+        const end = now.toISOString();
+        const base = cfg.indoorApiAddress + cfg.indoorApiEndpointRange;
+        const p = cfg.indoorApiParams;
+        const url = `${base}?${p.start}=${start}&${p.end}=${end}&${p.interval}=${interval}`;
+        const res = await fetch(url);
+        const series = await res.json();
+
+        if (!series || !series.length) return;
+
+        this.indoorData = Array(this.temperatureData.labels.length).fill(null);
+        this.indoorHumidityData = Array(this.temperatureData.labels.length).fill(null);
+
+        const chartTimePoints = this.temperatureData.times;
+
+        const indoorDataPoints = [];
+        for (let i = 0; i < series.length; i++) {
+            const item = series[i];
+            const raw = item.date || item.timestamp;
+            const timeStr = (typeof raw === 'string' && !raw.endsWith('Z') && !/[+-]\d{2}:\d{2}$/.test(raw))
+                ? raw + 'Z'
+                : raw;
+            const time = new Date(timeStr);
+            if (isNaN(time) || time < pastWindow || time > now) continue;
+            indoorDataPoints.push({
+                time,
+                temp: parseFloat(item.temperature),
+                humidity: item.humidity !== undefined ? parseFloat(item.humidity) : null
+            });
+        }
+
+        indoorDataPoints.sort((a, b) => a.time - b.time);
+        if (!indoorDataPoints.length) return;
+
+        // Average all raw readings that fall within ±half the grid interval around each grid point.
+        // Leaves null (no point plotted) when no readings exist in that window.
+        const halfWindowMs = (interval * 1000) / 2;
+        for (let i = 0; i < chartTimePoints.length; i++) {
+            const center = chartTimePoints[i].getTime();
+            const inWindow = indoorDataPoints.filter(
+                p => p.time.getTime() >= center - halfWindowMs && p.time.getTime() <= center + halfWindowMs
+            );
+            if (inWindow.length === 0) continue; // leave null — no point plotted
+
+            const avgTemp = inWindow.reduce((s, p) => s + p.temp, 0) / inWindow.length;
+            this.indoorData[i] = parseFloat(avgTemp.toFixed(1));
+
+            const withHumidity = inWindow.filter(p => p.humidity !== null);
+            if (withHumidity.length > 0) {
+                const avgHum = withHumidity.reduce((s, p) => s + p.humidity, 0) / withHumidity.length;
+                this.indoorHumidityData[i] = parseFloat(avgHum.toFixed(1));
+            }
+        }
+    }
+
+    /** @private */
+    async _fetchIndoorDayData() {
+        try {
+            await this._fetchIndoorSeriesData(24 * 3600 * 1000, 15 * 60);
         } catch (error) {
             console.error('Error fetching indoor temperature data:', error);
             this.indoorData = Array(this.temperatureData.labels.length).fill(null);
@@ -453,55 +438,25 @@ class TemperatureChart {
         }
     }
 
-    /**
-     * Fill missing indoor data values by forward and backward filling.
-     * @private
-     */
-    _fillMissingIndoorData() {
-        let lastValidValue = null;
-        // Forward fill
-        for (let i = 0; i < this.indoorData.length; i++) {
-            if (this.indoorData[i] !== null) {
-                lastValidValue = this.indoorData[i];
-            } else if (lastValidValue !== null) {
-                this.indoorData[i] = lastValidValue;
-            }
-        }
-        // Backward fill if needed
-        lastValidValue = null;
-        for (let i = this.indoorData.length - 1; i >= 0; i--) {
-            if (this.indoorData[i] !== null) {
-                lastValidValue = this.indoorData[i];
-            } else if (lastValidValue !== null) {
-                this.indoorData[i] = lastValidValue;
-            }
+    /** @private */
+    async _fetchIndoorWeekData() {
+        try {
+            await this._fetchIndoorSeriesData(7 * 24 * 3600 * 1000, 2 * 60 * 60);
+        } catch (error) {
+            console.error('Error fetching indoor week temperature data:', error);
+            this.indoorData = Array(this.temperatureData.labels.length).fill(null);
+            this.indoorHumidityData = Array(this.temperatureData.labels.length).fill(null);
         }
     }
 
     /**
-     * Helper method to parse time labels back to Date objects.
-     * @private
-     * @param {string} timeStr - Time string in "HH:mm" format
-     * @returns {Date}
-     */
-    _parseTimeLabel(timeStr) {
-        // Parse a chart label like "14:30" to a Date on the current day.
-        // This is sufficient because charts only show the last 24 hours.
-        const today = new Date();
-        const [hours, minutes] = timeStr.split(':').map(Number);
-        return new Date(today.getFullYear(), today.getMonth(), today.getDate(), hours, minutes);
-    }
-
-    /**
-     * Update chart with current data.
+     * Update chart with current data and mode-specific settings.
      * @private
      */
     _updateChart() {
-        // Update chart data directly using simplified structures
         this.chart.data.labels = this.temperatureData.labels;
         this.chart.data.datasets[0].data = this.temperatureData.values;
 
-        // Only show indoor temperature dataset if there is at least one valid value
         const hasIndoor = Array.isArray(this.indoorData) && this.indoorData.some(v => v !== null && v !== undefined);
         if (hasIndoor) {
             this.chart.data.datasets[1].data = this.indoorData;
@@ -511,7 +466,6 @@ class TemperatureChart {
             this.chart.data.datasets[1].hidden = true;
         }
 
-        // Same for indoor humidity (dataset index 2)
         if (this.chart.data.datasets[2]) {
             const hasHumidity = Array.isArray(this.indoorHumidityData) && this.indoorHumidityData.some(v => v !== null && v !== undefined);
             if (hasHumidity) {
@@ -525,8 +479,31 @@ class TemperatureChart {
 
         this.chart.options.plugins.title = {
             display: true,
-            text: 'Teploty (posledních 24 hodin)'
+            text: this.currentMode === 'day' ? 'Teploty (posledních 24 hodin)' : 'Teploty (posledních 7 dní)',
+            font: { size: 11 }
         };
+
+        if (this.currentMode === 'week') {
+            // Show exactly one label per day at midnight, formatted as "10.5."
+            const times = this.temperatureData.times;
+            this.chart.options.scales.x.ticks = {
+                maxRotation: 0,
+                autoSkip: false,
+                callback: function(value, index) {
+                    const t = times[index];
+                    if (!t) return null;
+                    return (t.getHours() === 0 && t.getMinutes() === 0)
+                        ? `${t.getDate()}.${t.getMonth() + 1}.`
+                        : null;
+                }
+            };
+        } else {
+            this.chart.options.scales.x.ticks = {
+                maxRotation: 0,
+                autoSkip: true,
+                maxTicksLimit: 25
+            };
+        }
 
         this.chart.update();
     }
@@ -536,14 +513,11 @@ class TemperatureChart {
      * @private
      */
     _setupRefreshTimers() {
-        // Refresh day data every 15 minutes, including indoor
-        setInterval(() =>
-            Promise.all([this._fetchDayData(), this._fetchIndoorDayData()])
-                .then(() => {
-                    this._updateChart();
-                }),
-            15 * 60 * 1000
-        );
+        setInterval(() => {
+            const fetchOutdoor = this.currentMode === 'day' ? this._fetchDayData() : this._fetchWeekData();
+            const fetchIndoor = this.currentMode === 'day' ? this._fetchIndoorDayData() : this._fetchIndoorWeekData();
+            Promise.all([fetchOutdoor, fetchIndoor]).then(() => this._updateChart());
+        }, 15 * 60 * 1000);
     }
 }
 
@@ -553,6 +527,5 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Chart.js is not loaded! Please include the Chart.js library.');
         return;
     }
-    // Delay initialization slightly to ensure config is loaded
     setTimeout(() => new TemperatureChart(), 100);
 });
