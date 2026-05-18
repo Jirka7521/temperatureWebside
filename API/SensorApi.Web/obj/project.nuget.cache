@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "jPjvLI+44Xw=",
+  "dgSpecHash": "RsHGRaDVLzg=",
   "success": true,
-  "projectFilePath": "C:\\Users\\Jirka\\source\\repos\\temperatureWebside\\API\\SensorApi.Web\\SensorApi.Web.csproj",
+  "projectFilePath": "C:\\Users\\Jirka\\source\\repos\\Jirka7521\\temperatureWebside\\API\\SensorApi.Web\\SensorApi.Web.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Jirka\\.nuget\\packages\\azure.core\\1.38.0\\azure.core.1.38.0.nupkg.sha512",
     "C:\\Users\\Jirka\\.nuget\\packages\\azure.identity\\1.11.4\\azure.identity.1.11.4.nupkg.sha512",

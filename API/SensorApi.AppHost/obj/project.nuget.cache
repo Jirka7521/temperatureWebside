@@ -1,13 +1,13 @@
 {
   "version": 2,
-  "dgSpecHash": "Ypn4243P0mY=",
+  "dgSpecHash": "4/bzWMDXbZE=",
   "success": true,
-  "projectFilePath": "C:\\Users\\Jirka\\source\\repos\\temperatureWebside\\API\\SensorApi.AppHost\\SensorApi.AppHost.csproj",
+  "projectFilePath": "C:\\Users\\Jirka\\source\\repos\\Jirka7521\\temperatureWebside\\API\\SensorApi.AppHost\\SensorApi.AppHost.csproj",
   "expectedPackageFiles": [
-    "C:\\Users\\Jirka\\.nuget\\packages\\aspire.dashboard.sdk.win-x64\\9.0.0\\aspire.dashboard.sdk.win-x64.9.0.0.nupkg.sha512",
+    "C:\\Users\\Jirka\\.nuget\\packages\\aspire.dashboard.sdk.win-arm64\\9.0.0\\aspire.dashboard.sdk.win-arm64.9.0.0.nupkg.sha512",
     "C:\\Users\\Jirka\\.nuget\\packages\\aspire.hosting\\9.0.0\\aspire.hosting.9.0.0.nupkg.sha512",
     "C:\\Users\\Jirka\\.nuget\\packages\\aspire.hosting.apphost\\9.0.0\\aspire.hosting.apphost.9.0.0.nupkg.sha512",
-    "C:\\Users\\Jirka\\.nuget\\packages\\aspire.hosting.orchestration.win-x64\\9.0.0\\aspire.hosting.orchestration.win-x64.9.0.0.nupkg.sha512",
+    "C:\\Users\\Jirka\\.nuget\\packages\\aspire.hosting.orchestration.win-arm64\\9.0.0\\aspire.hosting.orchestration.win-arm64.9.0.0.nupkg.sha512",
     "C:\\Users\\Jirka\\.nuget\\packages\\aspnetcore.healthchecks.uris\\8.0.1\\aspnetcore.healthchecks.uris.8.0.1.nupkg.sha512",
     "C:\\Users\\Jirka\\.nuget\\packages\\fractions\\7.3.0\\fractions.7.3.0.nupkg.sha512",
     "C:\\Users\\Jirka\\.nuget\\packages\\google.protobuf\\3.28.2\\google.protobuf.3.28.2.nupkg.sha512",

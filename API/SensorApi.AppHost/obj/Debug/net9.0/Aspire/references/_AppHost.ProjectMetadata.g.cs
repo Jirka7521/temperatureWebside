@@ -8,5 +8,5 @@ namespace Projects;
 public class SensorApi_AppHost
 {
     private SensorApi_AppHost() { }
-    public static string ProjectPath => """C:\Users\Jirka\source\repos\temperatureWebside\API\SensorApi.AppHost""";
+    public static string ProjectPath => """C:\Users\Jirka\source\repos\Jirka7521\temperatureWebside\API\SensorApi.AppHost""";
 }

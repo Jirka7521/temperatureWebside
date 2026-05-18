@@ -175,6 +175,8 @@ docker compose down
 #### Redeploying after code changes
 
 ```bash
+# Copy files to server 
+scp -r <path in pc> <user>@<server address>:<path in the server>
 # Remove running containers and old images, then rebuild and restart both services
 docker compose down --rmi all
 docker compose up -d --build

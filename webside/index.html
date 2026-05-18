@@ -21,7 +21,7 @@
         <!-- Row 2: Indoor Temperature & Humidity and Outdoor Temp & Rain Forecast -->
         <div class="row row-grow-1 g-3 mb-2">
             <!-- Indoor Temperature & Humidity Card -->
-            <div class="col-12 col-md-6 d-flex">
+            <div class="col-6 d-flex">
                 <div class="card text-center shadow flex-fill">
                     <div class="card-body">
                         <div class="responsive-title">Vnitřní teplota</div>
@@ -41,7 +41,7 @@
                 </div>
             </div>
             <!-- Outdoor Weather Card -->
-            <div class="col-12 col-md-6 d-flex">
+            <div class="col-6 d-flex">
                 <div class="card text-center shadow flex-fill">
                     <div class="card-body">
                         <div class="responsive-title">Venkovní počasí</div>
@@ -124,5 +124,21 @@
     <script src="getValues.js"></script>
     <script src="chartSetup.js"></script>
     <!-- Flash logic moved into getValues.js -->
+    <script>
+        (function () {
+            var swapped = false;
+            setInterval(function () {
+                var containers = document.querySelectorAll('.temp-humidity-container');
+                containers.forEach(function (c) { c.style.opacity = '0'; });
+                setTimeout(function () {
+                    swapped = !swapped;
+                    containers.forEach(function (c) {
+                        c.classList.toggle('swapped', swapped);
+                        c.style.opacity = '1';
+                    });
+                }, 350);
+            }, 8000);
+        })();
+    </script>
 </body>
 </html>

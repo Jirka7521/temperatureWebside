@@ -7,5 +7,5 @@ namespace Projects;
 [global::System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}")]
 public class SensorApi_Web : global::Aspire.Hosting.IProjectMetadata
 {
-    public string ProjectPath => """C:\Users\Jirka\source\repos\temperatureWebside\API\SensorApi.Web\SensorApi.Web.csproj""";
+    public string ProjectPath => """C:\Users\Jirka\source\repos\Jirka7521\temperatureWebside\API\SensorApi.Web\SensorApi.Web.csproj""";
 }

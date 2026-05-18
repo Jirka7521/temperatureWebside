@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "bEWpVuxeeT4=",
+  "dgSpecHash": "KHjJYnN06Tg=",
   "success": true,
-  "projectFilePath": "C:\\Users\\Jirka\\source\\repos\\temperatureWebside\\API\\SensorApi.ApiService\\SensorApi.ApiService.csproj",
+  "projectFilePath": "C:\\Users\\Jirka\\source\\repos\\Jirka7521\\temperatureWebside\\API\\SensorApi.ApiService\\SensorApi.ApiService.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Jirka\\.nuget\\packages\\google.protobuf\\3.22.5\\google.protobuf.3.22.5.nupkg.sha512",
     "C:\\Users\\Jirka\\.nuget\\packages\\grpc.core.api\\2.52.0\\grpc.core.api.2.52.0.nupkg.sha512",

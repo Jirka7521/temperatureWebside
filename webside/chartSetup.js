@@ -425,6 +425,18 @@ class TemperatureChart {
                 this.indoorHumidityData[i] = parseFloat(avgHum.toFixed(1));
             }
         }
+
+        // Always extend the indoor line to the rightmost chart point using the latest reading.
+        // This prevents the line from stopping short of the right edge when the newest reading
+        // falls outside the last bin window.
+        const lastIdx = chartTimePoints.length - 1;
+        if (this.indoorData[lastIdx] === null) {
+            const latest = indoorDataPoints[indoorDataPoints.length - 1];
+            this.indoorData[lastIdx] = parseFloat(latest.temp.toFixed(1));
+            if (latest.humidity !== null) {
+                this.indoorHumidityData[lastIdx] = parseFloat(latest.humidity.toFixed(1));
+            }
+        }
     }
 
     /** @private */

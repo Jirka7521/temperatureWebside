@@ -31,19 +31,18 @@ body.dark{
  * 1. BASE LAYOUT & CONTAINER STYLES
  * ----------------------------------------- */
 
-/* Set full height and remove default margin/padding. Prevent scrolling by default. */
+/* Lock page to exactly the viewport — no scrolling on any device */
 html, body {
     height: 100%;
     margin: 0;
     padding: 0;
-    overflow: auto; /* Allow scrolling and let the page expand to full height */
+    overflow: hidden;
 }
 
-/* Ensure body and main container always fill viewport height */
 body, .container-fluid {
-    min-height: 100vh; /* Ensure at least viewport height */
-    height: auto; /* Allow content to expand beyond viewport when needed */
-    max-height: none; /* Remove forced cap so server/container can stretch full screen */
+    height: 100vh;
+    max-height: 100vh;
+    overflow: hidden;
 }
 
 /* Dashboard container uses flex column layout */
@@ -163,6 +162,11 @@ body, .container-fluid {
     justify-content: center;
     gap: clamp(1rem, 3.2vmin, 3rem); /* Responsive gap to reduce overflow risk */
     flex-wrap: wrap; /* Allow wrapping to avoid overflow on narrower tiles */
+    transition: opacity 0.35s ease;
+}
+
+.temp-humidity-container.swapped {
+    flex-direction: row-reverse;
 }
 
 /* Forecast container for rain/other info */
@@ -343,6 +347,10 @@ body, .container-fluid {
         gap: 0.25rem; /* Even smaller gap on mobile */
     }
 
+    .temp-humidity-container.swapped {
+        flex-direction: column-reverse;
+    }
+
     /* Stack time info vertically */
     .time-container {
         flex-direction: column;
@@ -369,25 +377,12 @@ body, .container-fluid {
 }
 
 @media (max-width: 767.98px) {
-    /* Hide chart row on phones to keep focus on key tiles */
+    /* On phones keep chart visible but give it more room */
+    .row-grow-1 {
+        flex: 1 1 auto;
+    }
+
     .row-grow-3 {
-        display: none !important;
-    }
-
-    /* Hide chart mode toggle when chart is not visible */
-    .chart-mode-toggle-group {
-        display: none !important;
-    }
-
-    /* Allow scrolling when chart row is removed on very small screens */
-    html, body {
-        overflow: auto;
-    }
-}
-
-/* Allow scrolling on very small mobile screens as last resort */
-@media (max-height: 500px) {
-    html, body {
-        overflow: auto;
+        flex: 2 1 auto;
     }
 }
