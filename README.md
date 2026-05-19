@@ -5,11 +5,13 @@ This repository contains a complete solution for a meteorological dashboard, dev
 ## Project Overview
 
 - **Indoor Sensing:** An ESP32 microcontroller with a DHT11 sensor measures temperature and humidity, sending data to a REST API when significant changes occur or at regular intervals.
-- **Web Dashboard:** A responsive web application displays indoor and outdoor weather data, including real-time values and 24-hour charts for both.
+- **Web Dashboard (`index.html`):** A responsive web application displaying indoor and outdoor weather data, real-time values, and 24-hour / 7-day temperature charts.  Includes a top navigation bar on desktop with links to both pages, chart-mode toggle, and dark/light mode switch.
+- **Data Table (`data.html`):** A secondary page listing all recorded sensor readings in a paginated, sortable, filterable table with a free-text search.  Only the current page is fetched from the database, and the table auto-refreshes without resetting the user's active filters or sort order.
 - **Data Sources:** 
     - Indoor data is collected from the ESP32 and stored via a custom API.
-    - Outdoor data is fetched from an external weather API.
+    - Outdoor data is fetched from an external weather API (Open-Meteo).
 - **Visualization:** Uses Chart.js for interactive temperature charts, with color-coded values and responsive design.
+- **Theming:** Full dark / light mode toggle, persisted in `localStorage`.  Works across both pages.
 
 ## Requirements
 
@@ -79,12 +81,38 @@ Note: [ESP32/ESP32TempSensor/include/config.h](ESP32/ESP32TempSensor/include/con
 
 ## Web Dashboard
 
-- Frontend files are in [webside](webside).
-- [webside/index.html](webside/index.html): Responsive layout with Bootstrap, indoor/outdoor panels, and a 24-hour chart.
-- [webside/style.css](webside/style.css): Responsive styles and card/chart layout.
-- [webside/config.js](webside/config.js): Central endpoints and refresh/threshold settings.
-- [webside/getValues.js](webside/getValues.js): Periodic data fetch and UI updates.
-- [webside/chartSetup.js](webside/chartSetup.js): Chart.js setup for indoor/outdoor history.
+Frontend files are in [webside/](webside).
+
+| File | Purpose |
+|------|---------|
+| [index.html](webside/index.html) | Main dashboard — live indoor/outdoor values, 24 h / 7 d temperature chart |
+| [data.html](webside/data.html) | Data table page — paginated history with sorting, filtering, and search |
+| [style.css](webside/style.css) | All styles: theme variables, responsive layout, top navbar, data-table |
+| [config.js](webside/config.js) | Runtime configuration (API endpoints, thresholds, intervals) |
+| [darkmode.js](webside/darkmode.js) | Dark / light theme toggle — class-based, works on any number of buttons |
+| [getValues.js](webside/getValues.js) | Dashboard controller: periodic data fetch, `flashIfChanged` helper |
+| [chartSetup.js](webside/chartSetup.js) | Chart.js visualization for indoor/outdoor temperature history |
+| [data.js](webside/data.js) | Data table controller: `TableState`, `DataTableController` classes |
+
+### Top Navigation Bar
+
+On desktop (≥ 768 px) a slim top bar appears above the dashboard with:
+
+- Application brand / home link
+- **Dashboard** and **Data** page links (active link is highlighted)
+- Chart-mode toggle (24 h / 7 d) — shown on the dashboard page only
+- Dark / light mode toggle
+
+On mobile the navbar is hidden; the compact status bar inside the dashboard provides the theme toggle.
+
+### Data Table (`data.html`)
+
+- **Server-side pagination** — only the requested page is fetched from the database (no full-table loads).
+- **Free-text search** — matches substrings in the formatted date, temperature, and humidity columns (debounced, 400 ms).
+- **Date-range filter** — pick a start and/or end datetime; the frontend converts local time to UTC before sending to the API.
+- **Column sorting** — click any column header to sort; click again to reverse direction.  Active sort column is highlighted with an accent colour.
+- **Auto-refresh** — re-fetches on the same interval as the main dashboard without touching the user's filters, sort, or page.
+- **Timezone-aware display** — all timestamps arrive as UTC from the backend and are displayed in the browser's local timezone via the Intl API.
 
 ## Running the Project
 
@@ -103,6 +131,39 @@ Note: [ESP32/ESP32TempSensor/include/config.h](ESP32/ESP32TempSensor/include/con
 - It uses `psycopg` for DB access and reads configuration from environment
     variables (or an optional `.env` file). See `app/db.py` for the expected
     variables: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`.
+
+**API endpoints summary:**
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/health` | Liveness check |
+| `GET` | `/getCurrent` | Latest sensor reading |
+| `POST` | `/data/insert` | Insert a new reading (JSON body) |
+| `GET` | `/getPast` | Downsampled time range (for charts) |
+| `GET` | `/getData` | **Paginated, filterable, sortable history for the data table** |
+
+**`GET /getData` query parameters:**
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `page` | `1` | 1-based page number |
+| `pageSize` | `50` | Records per page (max 500) |
+| `sortBy` | `date` | Column: `date` \| `temperature` \| `humidity` |
+| `sortOrder` | `desc` | Direction: `asc` \| `desc` |
+| `search` | _(none)_ | Substring matched against date string, temperature, and humidity |
+| `startDate` | _(none)_ | UTC ISO lower bound (inclusive) |
+| `endDate` | _(none)_ | UTC ISO upper bound (inclusive) |
+
+Response shape:
+```json
+{
+  "data":       [ { "temperature": 22.3, "humidity": 45.6, "date": "2026-05-19T10:30:00Z" } ],
+  "total":      1000,
+  "page":       1,
+  "pageSize":   50,
+  "totalPages": 20
+}
+```
 
 Running the Python backend locally:
 

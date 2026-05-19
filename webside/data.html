@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data — Meteorologický panel</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Shared stylesheet (theme variables, navbar, data-table styles) -->
+    <link href="style.css" rel="stylesheet">
+    <!-- Favicon -->
+    <link rel="icon" href="Icon.ico" type="image/x-icon">
+    <link rel="shortcut icon" href="Icon.ico" type="image/x-icon">
+</head>
+
+<!--
+    body.data-page  — activates the CSS overrides that allow this page to scroll
+    (the dashboard on index.html is fullscreen and never scrolls).
+-->
+<body class="bg-light data-page">
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         TOP NAVIGATION BAR  (desktop ≥ 768 px only)
+         Identical structure to index.html except "Data" is the active link
+         and chart-mode buttons are omitted (no chart on this page).
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- Navbar layout: [start: brand + links] | [center: theme toggle] | [end: empty] -->
+    <nav class="top-navbar d-none d-md-flex align-items-center"
+         id="topNav" aria-label="Hlavní navigace">
+
+        <!-- LEFT: brand and page navigation links -->
+        <div class="top-navbar-start">
+            <a href="index.html" class="top-navbar-brand">Meteorologický panel</a>
+            <div class="top-navbar-divider" aria-hidden="true"></div>
+            <ul class="top-navbar-nav" role="list">
+                <li>
+                    <a href="index.html" class="top-nav-link">Přehled</a>
+                </li>
+                <li>
+                    <a href="data.html" class="top-nav-link top-nav-link--active"
+                       aria-current="page">Data</a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- CENTRE: dark / light mode toggle -->
+        <div class="top-navbar-center">
+            <button class="btn btn-ghost theme-btn"
+                    aria-label="Přepnout tmavý/světlý režim"
+                    title="Přepnout tmavý/světlý režim">
+                <span class="theme-icon" aria-hidden="true"></span>
+            </button>
+        </div>
+
+        <!-- RIGHT: empty on data page (no chart to switch) — keeps theme toggle centred -->
+        <div class="top-navbar-end"></div>
+
+    </nav>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         MOBILE HEADER  (hidden on desktop — navbar takes its role there)
+         Shows the page title and the theme toggle on small screens.
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <div class="d-flex d-md-none mobile-data-header align-items-center justify-content-between">
+        <span class="data-page-title">Záznamy senzoru</span>
+        <button class="btn btn-sm btn-ghost theme-btn"
+                aria-label="Přepnout tmavý/světlý režim">
+            <span class="theme-icon" aria-hidden="true"></span>
+        </button>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         PAGE CONTENT
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <div class="data-page-wrapper">
+
+        <!-- Page heading (desktop only — mobile uses the header bar above) -->
+        <div class="d-none d-md-flex align-items-center justify-content-between mb-3">
+            <h1 class="data-page-title">Záznamy senzoru</h1>
+            <!-- Auto-refresh indicator: data.js updates this text -->
+            <span id="autoRefreshLabel" class="refresh-badge">Automatická aktualizace…</span>
+        </div>
+
+        <!-- ── FILTERS ─────────────────────────────────────────────────────── -->
+        <!--
+            Filters are applied by clicking "Filtrovat" or pressing Enter.
+            The search input uses a short debounce (400 ms) so it also triggers
+            without a button click.  Reset restores all inputs to their defaults.
+        -->
+        <div class="card shadow-sm mb-3 filter-card">
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+
+                    <!-- Date-range: from -->
+                    <div class="col-12 col-sm-6 col-xl-3">
+                        <label class="filter-label" for="filterStart">Od (datum a čas)</label>
+                        <input type="datetime-local" id="filterStart"
+                               class="form-control filter-input"
+                               aria-label="Počáteční datum a čas filtru">
+                    </div>
+
+                    <!-- Date-range: to -->
+                    <div class="col-12 col-sm-6 col-xl-3">
+                        <label class="filter-label" for="filterEnd">Do (datum a čas)</label>
+                        <input type="datetime-local" id="filterEnd"
+                               class="form-control filter-input"
+                               aria-label="Koncové datum a čas filtru">
+                    </div>
+
+                    <!-- Free-text search -->
+                    <div class="col-12 col-xl-4">
+                        <label class="filter-label" for="searchInput">Hledat</label>
+                        <input type="search" id="searchInput"
+                               class="form-control filter-input"
+                               placeholder="Teplota, vlhkost, datum…"
+                               aria-label="Hledat v záznamech">
+                    </div>
+
+                    <!-- Action buttons -->
+                    <div class="col-12 col-xl-2 d-flex gap-2">
+                        <button id="applyFilters"
+                                class="btn btn-primary btn-sm flex-fill">
+                            Filtrovat
+                        </button>
+                        <button id="resetFilters"
+                                class="btn btn-outline-secondary btn-sm flex-fill"
+                                title="Obnovit výchozí filtry">
+                            Reset
+                        </button>
+                    </div>
+
+                </div><!-- /.row -->
+            </div><!-- /.card-body -->
+        </div><!-- /.filter-card -->
+
+
+        <!-- ── DATA TABLE CARD ─────────────────────────────────────────────── -->
+        <div class="card shadow data-table-card">
+            <div class="card-body">
+
+                <!-- Toolbar: record count (left) | refresh badge + page size (right) -->
+                <div class="data-toolbar d-flex align-items-center
+                            justify-content-between flex-wrap gap-2 px-3 py-2">
+
+                    <!-- e.g. "Záznamy 1–50 z 1 234" -->
+                    <span id="recordCount" class="data-toolbar-info">Načítání…</span>
+
+                    <div class="d-flex align-items-center gap-3">
+                        <!-- How long ago the table data was last fetched -->
+                        <span id="lastRefreshBadge" class="refresh-badge">–</span>
+
+                        <!-- Rows-per-page selector; changing it resets to page 1 -->
+                        <label class="d-flex align-items-center gap-2 mb-0 filter-label">
+                            Řádků:
+                            <select id="pageSizeSelect"
+                                    class="form-select form-select-sm page-size-select filter-input"
+                                    aria-label="Počet řádků na stránku">
+                                <option value="25">25</option>
+                                <option value="50"  selected>50</option>
+                                <option value="100">100</option>
+                                <option value="200">200</option>
+                            </select>
+                        </label>
+                    </div>
+
+                </div><!-- /.data-toolbar -->
+
+                <!-- Loading overlay — shown while the first fetch (or filter change) is in
+                     progress; hidden during silent auto-refreshes. -->
+                <div id="loadingIndicator" class="data-loading" style="display:none;"
+                     role="status" aria-live="polite" aria-label="Načítání dat">
+                    <div class="spinner-border text-primary">
+                        <span class="visually-hidden">Načítání…</span>
+                    </div>
+                </div>
+
+                <!-- Horizontally scrollable wrapper so the table never breaks the layout
+                     on small screens. -->
+                <div class="table-responsive">
+                    <table class="table data-table" id="sensorTable">
+                        <thead>
+                            <tr>
+                                <!--
+                                    data-col must match the keys accepted by the
+                                    backend's `sortBy` query parameter.
+                                    class="sortable" activates the click handler in data.js.
+                                -->
+                                <th class="sortable" data-col="date">
+                                    Datum a čas
+                                    <span class="sort-icon" aria-hidden="true">⇅</span>
+                                </th>
+                                <th class="sortable text-end" data-col="temperature">
+                                    Teplota (°C)
+                                    <span class="sort-icon" aria-hidden="true">⇅</span>
+                                </th>
+                                <th class="sortable text-end" data-col="humidity">
+                                    Vlhkost (%)
+                                    <span class="sort-icon" aria-hidden="true">⇅</span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <!-- Rows are injected here by data.js on every fetch -->
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div><!-- /.table-responsive -->
+
+                <!-- ── PAGINATION ─────────────────────────────────────────── -->
+                <!--
+                    First/Last buttons jump to page 1 / last page.
+                    Prev/Next move by one.
+                    All four buttons are disabled when irrelevant.
+                    The page-info span shows "Stránka X z Y".
+                -->
+                <div class="data-pagination d-flex align-items-center
+                            justify-content-between flex-wrap gap-2 px-3 py-2">
+
+                    <div class="d-flex gap-1">
+                        <button id="firstPage" class="btn btn-sm btn-outline-secondary"
+                                aria-label="První stránka" disabled>«</button>
+                        <button id="prevPage"  class="btn btn-sm btn-outline-secondary"
+                                aria-label="Předchozí stránka" disabled>‹</button>
+                    </div>
+
+                    <span id="pageInfo" class="filter-label mb-0">Stránka 1 z 1</span>
+
+                    <div class="d-flex gap-1">
+                        <button id="nextPage"  class="btn btn-sm btn-outline-secondary"
+                                aria-label="Další stránka" disabled>›</button>
+                        <button id="lastPage"  class="btn btn-sm btn-outline-secondary"
+                                aria-label="Poslední stránka" disabled>»</button>
+                    </div>
+
+                </div><!-- /.data-pagination -->
+
+            </div><!-- /.card-body -->
+        </div><!-- /.data-table-card -->
+
+    </div><!-- /.data-page-wrapper -->
+
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SCRIPTS
+         Load order matters:
+           1. darkmode.js  — must run first to avoid flash of wrong theme
+           2. config.js    — sets window.inlineConfig synchronously
+           3. data.js      — reads window.inlineConfig and initialises the table
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="darkmode.js"></script>
+    <script src="config.js"></script>
+    <script src="data.js"></script>
+
+</body>
+</html>

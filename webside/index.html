@@ -13,6 +13,48 @@
 </head>
 <body class="bg-light">
 
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         TOP NAVIGATION BAR
+         Visible on desktop (≥ md / 768 px) only.  Hidden on mobile — the
+         compact status bar inside the dashboard serves that role instead.
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- Navbar layout: [start: brand + links] | [center: theme toggle] | [end: chart buttons] -->
+    <nav class="top-navbar d-none d-md-flex align-items-center"
+         id="topNav" aria-label="Hlavní navigace">
+
+        <!-- LEFT: brand and page navigation links -->
+        <div class="top-navbar-start">
+            <a href="index.html" class="top-navbar-brand">Meteorologický panel</a>
+            <div class="top-navbar-divider" aria-hidden="true"></div>
+            <ul class="top-navbar-nav" role="list">
+                <li>
+                    <a href="index.html" class="top-nav-link top-nav-link--active"
+                       aria-current="page">Přehled</a>
+                </li>
+                <li>
+                    <a href="data.html" class="top-nav-link">Data</a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- CENTRE: dark / light mode toggle (visually centred by equal flex:1 on siblings) -->
+        <div class="top-navbar-center">
+            <button class="btn btn-ghost theme-btn"
+                    aria-label="Přepnout tmavý/světlý režim"
+                    title="Přepnout tmavý/světlý režim">
+                <span class="theme-icon" aria-hidden="true"></span>
+            </button>
+        </div>
+
+        <!-- RIGHT: chart-mode toggle (24 h / 7 d).
+             Button IDs are referenced by chartSetup.js — do not rename. -->
+        <div class="top-navbar-end">
+            <button id="chartDay"  class="btn chart-mode-btn active" aria-pressed="true">24 hod</button>
+            <button id="chartWeek" class="btn chart-mode-btn"        aria-pressed="false">7 dní</button>
+        </div>
+
+    </nav>
+
     <!-- Main Container -->
     <div class="container-fluid p-3 dashboard-rows">
 
@@ -72,15 +114,17 @@
                     <div class="card-body d-flex flex-column flex-md-row align-items-center gap-2">
                         <div id="current-time" class="status-text flex-grow-1 text-center text-md-start d-none d-md-block">Načítání aktuálního času…</div>
 
-                        <div class="d-flex align-items-center gap-2 mx-md-3 justify-content-center">
+                        <!-- Mobile-only controls: theme toggle.
+                             On desktop these controls live in the top navbar.
+                             Chart mode buttons are not needed on mobile because
+                             the chart is hidden there. -->
+                        <div class="d-flex d-md-none align-items-center gap-2 justify-content-center">
                             <div class="theme-toggle d-flex justify-content-center" style="align-items:center;">
-                                <button id="themeButton" class="btn btn-sm btn-ghost" aria-label="Přepnout tmavý režim" title="Přepnout tmavý režim">
-                                    <span id="themeIcon" class="theme-icon" aria-hidden="true"></span>
+                                <button class="btn btn-sm btn-ghost theme-btn"
+                                        aria-label="Přepnout tmavý režim"
+                                        title="Přepnout tmavý režim">
+                                    <span class="theme-icon" aria-hidden="true"></span>
                                 </button>
-                            </div>
-                            <div class="d-none d-md-flex gap-1 chart-mode-toggle-group">
-                                <button id="chartDay" class="btn chart-mode-btn active" aria-pressed="true">24 hodin</button>
-                                <button id="chartWeek" class="btn chart-mode-btn" aria-pressed="false">7 dní</button>
                             </div>
                         </div>
 

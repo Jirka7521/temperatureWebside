@@ -13,6 +13,14 @@
     --rain: #7fbbf3;
     /* Gridline color for charts (light mode) */
     --gridline: rgba(108, 117, 125, 0.35); /* based on text-muted */
+
+    /* Height of the top navigation bar.
+       0px on mobile (navbar is hidden); overridden to 52px on desktop.
+       Used in calc() to shrink the dashboard viewport. */
+    --navbar-h: 0px;
+
+    /* Semi-transparent overlay used by the data-table loading spinner */
+    --loading-overlay-bg: rgba(248, 249, 250, 0.88);
 }
 
 body.dark{
@@ -24,6 +32,12 @@ body.dark{
     --rain: #7fb3ff;
     /* Gridline color for charts (dark mode) */
     --gridline: rgba(230, 238, 248, 0.18); /* white-ish, subtle */
+    --loading-overlay-bg: rgba(11, 18, 32, 0.88);
+}
+
+/* Activate the navbar height offset when the top bar is visible */
+@media (min-width: 768px) {
+    :root { --navbar-h: 52px; }
 }
 
 
@@ -39,9 +53,19 @@ html, body {
     overflow: hidden;
 }
 
-body, .container-fluid {
+/* Body must stay full viewport height — it contains both the navbar AND the
+   dashboard container, so shrinking it would clip the chart at the bottom. */
+body {
     height: 100vh;
     max-height: 100vh;
+    overflow: hidden;
+}
+
+/* The dashboard container sits below the navbar, so it only gets the remaining
+   space.  On mobile --navbar-h is 0px, making this equivalent to 100vh. */
+.container-fluid {
+    height: calc(100vh - var(--navbar-h));
+    max-height: calc(100vh - var(--navbar-h));
     overflow: hidden;
 }
 
@@ -49,13 +73,14 @@ body, .container-fluid {
 .dashboard-rows {
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    height: calc(100vh - var(--navbar-h));
     padding: 0.5rem !important; /* Reduce container padding */
 }
 
 /* Row height distribution for dashboard sections */
 .row-grow-1 {
-    flex: 1; /* Top temperature panels - increased by 50% */
+    flex: 1;
+    min-height: 0;
 }
 
 .row-grow-2 {
@@ -90,6 +115,7 @@ body, .container-fluid {
     height: 100%;
     background: var(--card-bg);
     border: 0;
+    overflow: hidden;
 }
 
 /* Card body uses flex for vertical centering */
@@ -367,9 +393,10 @@ body, .container-fluid {
         display: none;
     }
 
-    /* Adjust row proportions for mobile */
+    /* Adjust row proportions for medium screens */
     .row-grow-1 {
-        flex: 1 0 auto;
+        flex: 1 1 auto;
+        min-height: 0;
     }
 
     .row-grow-2 {
@@ -425,4 +452,375 @@ body, .container-fluid {
     .status-text {
         font-size: clamp(0.95rem, 3.5vw, 1.3rem);
     }
+}
+
+/* =============================================================================
+ * 7. TOP NAVIGATION BAR
+ * =============================================================================
+ * Three-section layout:
+ *   .top-navbar-start  (flex: 1) — brand + page links, left-aligned
+ *   .top-navbar-center (flex: 0) — theme toggle, visually centred
+ *   .top-navbar-end    (flex: 1) — chart-mode buttons, right-aligned
+ *
+ * start and end both use flex:1 so they take equal width, which pins the
+ * centre section to the exact middle of the bar regardless of content width.
+ * ============================================================================= */
+
+/* Full-width strip pinned to the top of every page */
+.top-navbar {
+    height: var(--navbar-h);
+    min-height: var(--navbar-h);
+    background: var(--card-bg);
+    border-bottom: 1px solid rgba(108, 117, 125, 0.14);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    padding: 0 1.25rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    flex-shrink: 0;
+}
+
+/* Left section: brand + nav links */
+.top-navbar-start {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-width: 0;       /* allow flex shrinking so center stays centred */
+}
+
+/* Centre section: theme toggle only */
+.top-navbar-center {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+}
+
+/* Right section: chart-mode toggle (or empty on data page) */
+.top-navbar-end {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+/* Brand / application title — regular weight, subdued colour */
+.top-navbar-brand {
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    text-decoration: none;
+    white-space: nowrap;
+    flex-shrink: 0;
+    padding: 0.2rem 0.4rem;
+    border-radius: 6px;
+    transition: color 0.15s;
+}
+.top-navbar-brand:hover { color: var(--text-primary); }
+
+/* Thin divider between brand and page links */
+.top-navbar-divider {
+    width: 1px;
+    height: 18px;
+    background: rgba(108, 117, 125, 0.25);
+    flex-shrink: 0;
+    margin: 0 0.2rem;
+}
+
+/* Horizontal list of page links */
+.top-navbar-nav {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 0.1rem;
+    flex-shrink: 0;
+}
+
+/* Individual page link — same visual weight as chart-mode buttons */
+.top-nav-link {
+    display: block;
+    padding: 0.22rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.15s, background 0.15s;
+    white-space: nowrap;
+    line-height: 1.4;
+}
+.top-nav-link:hover {
+    color: var(--text-primary);
+    background: rgba(108, 117, 125, 0.09);
+}
+
+/* Active / current page link */
+.top-nav-link--active {
+    color: var(--accent);
+    background: rgba(56, 136, 255, 0.08);
+}
+body.dark .top-nav-link--active {
+    background: rgba(102, 178, 255, 0.1);
+}
+
+/* Theme toggle button in the navbar centre */
+.top-navbar-center .theme-btn {
+    padding: 0.25rem 0.45rem;
+}
+
+/* Match chart-mode button size to nav links */
+.top-navbar-end .chart-mode-btn {
+    font-size: 0.9rem;
+    padding: 0.22rem 0.6rem;
+}
+
+
+/* =============================================================================
+ * 8. DATA TABLE PAGE  (data.html)
+ * =============================================================================
+ * The data page uses `body.data-page` to opt out of the fullscreen dashboard
+ * layout and allow normal document scrolling.
+ * ============================================================================= */
+
+/* Allow scrolling on the data page; override the global overflow:hidden rules */
+html:has(body.data-page) {
+    overflow-y: auto;
+    height: auto;
+}
+body.data-page,
+body.data-page .container-fluid {
+    height: auto !important;
+    max-height: none !important;
+    overflow-y: auto !important;
+    overflow-x: hidden;
+}
+
+/* Constrain and center the page content */
+.data-page-wrapper {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1.25rem 1rem 3rem;
+}
+
+/* Page heading */
+.data-page-title {
+    font-size: clamp(1.2rem, 3vw, 1.6rem);
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+/* Mobile header bar (title + theme toggle, only on small screens) */
+.mobile-data-header {
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid rgba(108, 117, 125, 0.15);
+    background: var(--card-bg);
+    margin-bottom: 0.75rem;
+}
+
+/* ── Filter card ──────────────────────────────────────────────────────────── */
+
+/* Override the dashboard card-body centering for the filter form */
+.filter-card .card-body {
+    height: auto !important;
+    justify-content: flex-start !important;
+    align-items: stretch !important;
+    padding: 0.85rem 1.1rem !important;
+}
+
+/* Small label above each input */
+.filter-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    display: block;
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* Filter inputs inherit theme colours */
+.filter-input,
+.page-size-select {
+    background-color: var(--bg) !important;
+    border-color: rgba(108, 117, 125, 0.35) !important;
+    color: var(--text-primary) !important;
+    font-size: 0.875rem;
+}
+.filter-input:focus,
+.page-size-select:focus {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 0.2rem rgba(56, 136, 255, 0.2) !important;
+    background-color: var(--bg) !important;
+    color: var(--text-primary) !important;
+}
+/* Allow native date/time picker to adapt in dark mode */
+.filter-input {
+    color-scheme: light;
+}
+body.dark .filter-input {
+    color-scheme: dark;
+}
+
+/* ── Data table card ─────────────────────────────────────────────────────── */
+
+/* Override the dashboard card-body centering / fixed height */
+.data-table-card .card-body {
+    height: auto !important;
+    padding: 0 !important;
+    justify-content: flex-start !important;
+    align-items: stretch !important;
+    position: relative;     /* anchor for the loading overlay */
+    flex-direction: column;
+}
+
+/* Toolbar row above the table (record count + refresh badge + page size) */
+.data-toolbar {
+    border-bottom: 1px solid rgba(108, 117, 125, 0.15);
+    background: var(--card-bg);
+}
+.data-toolbar-info {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+
+/* "Updated X ago" badge */
+.refresh-badge {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    padding: 0.15rem 0.55rem;
+    border: 1px solid rgba(108, 117, 125, 0.3);
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+/* Page-size selector */
+.page-size-select {
+    width: auto;
+    min-width: 3.5rem;
+    display: inline-block;
+}
+
+/* ── The table itself ─────────────────────────────────────────────────────── */
+
+.data-table {
+    /* Override Bootstrap's table colour variables with theme variables */
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--text-primary);
+    --bs-table-border-color: rgba(108, 117, 125, 0.12);
+    color: var(--text-primary);
+    font-size: clamp(0.8rem, 1.4vw, 0.925rem);
+    margin-bottom: 0;
+}
+
+/* Sticky header so column labels stay visible while scrolling */
+.data-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--card-bg);
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid rgba(108, 117, 125, 0.2) !important;
+    white-space: nowrap;
+    padding: 0.6rem 1rem;
+    user-select: none;
+}
+
+/* Sortable column header — pointer cursor and hover feedback */
+.data-table thead th.sortable { cursor: pointer; }
+.data-table thead th.sortable:hover {
+    color: var(--text-primary);
+    background: rgba(108, 117, 125, 0.06);
+}
+
+/* Active sort column — highlight in accent colour */
+.data-table thead th.sort-active { color: var(--accent); }
+.sort-icon {
+    opacity: 0.45;
+    font-size: 0.68rem;
+    margin-left: 0.2rem;
+}
+.sort-active .sort-icon { opacity: 1; }
+
+/* Data rows */
+.data-table tbody tr {
+    transition: background 0.1s;
+}
+.data-table tbody tr:hover {
+    background: rgba(108, 117, 125, 0.055);
+}
+body.dark .data-table tbody tr:hover {
+    background: rgba(230, 238, 248, 0.04);
+}
+
+/* Table cells */
+.data-table td {
+    padding: 0.42rem 1rem;
+    border-bottom: 1px solid rgba(108, 117, 125, 0.1) !important;
+    vertical-align: middle;
+}
+
+/* Date column — monospace digits, no line-break */
+.data-cell-date {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: var(--text-primary);
+}
+
+/* Numeric columns — right-aligned, bold, monospace digits */
+.data-cell-temp,
+.data-cell-hum {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    text-align: right;
+}
+
+/* Empty / error state message inside the table */
+.data-table .table-empty-msg td {
+    color: var(--text-muted);
+    font-style: italic;
+    text-align: center;
+    padding: 2rem 1rem;
+}
+
+/* ── Loading overlay ─────────────────────────────────────────────────────── */
+
+/* Covers the whole card body while data is being fetched */
+.data-loading {
+    position: absolute;
+    inset: 0;
+    background: var(--loading-overlay-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    border-radius: inherit;
+}
+
+/* ── Pagination row ──────────────────────────────────────────────────────── */
+
+.data-pagination {
+    background: var(--card-bg);
+    border-top: 1px solid rgba(108, 117, 125, 0.15);
+    min-height: 48px;
+}
+
+/* Tighten pagination button padding on very small screens */
+@media (max-width: 400px) {
+    .data-pagination .btn { padding: 0.25rem 0.4rem; font-size: 0.8rem; }
+}
+
+/* ── Responsive tweaks for data page ─────────────────────────────────────── */
+
+@media (max-width: 767.98px) {
+    .data-page-wrapper { padding: 0.5rem 0.5rem 2rem; }
+    .data-table thead th { font-size: 0.68rem; padding: 0.5rem 0.6rem; }
+    .data-table td       { padding: 0.38rem 0.6rem; font-size: 0.8rem; }
 }
