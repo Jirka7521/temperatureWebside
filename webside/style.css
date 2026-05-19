@@ -160,14 +160,10 @@ body, .container-fluid {
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    gap: clamp(1rem, 3.2vmin, 3rem); /* Responsive gap to reduce overflow risk */
-    flex-wrap: wrap; /* Allow wrapping to avoid overflow on narrower tiles */
-    transition: opacity 0.35s ease;
+    gap: clamp(1rem, 3.2vmin, 3rem);
+    flex-wrap: wrap;
 }
 
-.temp-humidity-container.swapped {
-    flex-direction: row-reverse;
-}
 
 /* Forecast container for rain/other info */
 .forecast-container {
@@ -330,6 +326,15 @@ body, .container-fluid {
     border-color: var(--accent);
 }
 
+/* Flash animation — triggered only when a displayed value changes */
+@keyframes value-flash {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+.value-flash {
+    animation: value-flash 0.4s ease;
+}
+
 /* Temperature indicator text (muted) */
 .text-muted {
     color: var(--text-muted) !important; /* ensure contrast in dark mode, override Bootstrap */
@@ -377,12 +382,47 @@ body, .container-fluid {
 }
 
 @media (max-width: 767.98px) {
-    /* On phones keep chart visible but give it more room */
+    /* Stack the two temp cards vertically and fill the viewport */
     .row-grow-1 {
-        flex: 1 1 auto;
+        flex: 1 1 0 !important;
+        flex-direction: column !important;
+        flex-wrap: nowrap !important;
     }
 
-    .row-grow-3 {
-        flex: 2 1 auto;
+    .row-grow-1 > [class*="col-"] {
+        flex: 1 1 0 !important;
+        max-width: 100% !important;
+        min-height: 0;
+    }
+
+    /* Larger values and titles to fill the card space */
+    .row-grow-1 .responsive-value {
+        font-size: clamp(5rem, 24vw, 9rem);
+    }
+
+    .row-grow-1 .responsive-title {
+        font-size: clamp(1.3rem, 5.5vw, 2.2rem);
+        margin-bottom: 0.4rem;
+    }
+
+    .row-grow-1 .text-muted {
+        font-size: 1rem;
+        margin-top: 0.15rem;
+    }
+
+    .row-grow-1 .rain-forecast {
+        font-size: clamp(1.1rem, 4.5vw, 1.8rem);
+        margin-top: 0.4rem;
+    }
+
+    /* Status card: put theme toggle and time-since side by side, compact */
+    .status-card .card-body {
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        padding: 0.5rem 0.75rem !important;
+    }
+
+    .status-text {
+        font-size: clamp(0.95rem, 3.5vw, 1.3rem);
     }
 }

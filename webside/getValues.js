@@ -12,6 +12,24 @@
  */
 
 /**
+ * Update an element's text and flash it only when the value actually changed.
+ * @param {HTMLElement} el
+ * @param {string} newText
+ * @param {function(HTMLElement):void} [applyFn] - optional callback run after text is set (e.g. reset className, apply colour)
+ */
+function flashIfChanged(el, newText, applyFn) {
+    if (!el) return;
+    const changed = el.textContent !== newText;
+    el.textContent = newText;
+    if (applyFn) applyFn(el);
+    if (changed) {
+        el.classList.remove('value-flash');
+        void el.offsetWidth; // restart animation
+        el.classList.add('value-flash');
+    }
+}
+
+/**
  * Configuration Manager - handles application settings
  */
 class ConfigManager {
@@ -115,18 +133,16 @@ class IndoorTemperaturePanel extends Panel {
                 const indoorData = data[0];
                 const temp = parseFloat(indoorData.temperature);
                 const roundedTemp = Math.round(temp * 10) / 10;
-                if (this.tempElement) {
-                    this.tempElement.textContent = `${roundedTemp}°C`;
-                    this.tempElement.className = 'responsive-value';
-                    this._applyTemperatureClass(temp, this.tempElement);
-                }
+                flashIfChanged(this.tempElement, `${roundedTemp}°C`, el => {
+                    el.className = 'responsive-value';
+                    this._applyTemperatureClass(temp, el);
+                });
 
                 const humidity = parseFloat(indoorData.humidity);
                 const roundedHumidity = Math.round(humidity * 10) / 10;
-                if (this.humidityElement) {
-                    this.humidityElement.textContent = `${roundedHumidity}%`;
-                    this.humidityElement.className = 'responsive-value';
-                }
+                flashIfChanged(this.humidityElement, `${roundedHumidity}%`, el => {
+                    el.className = 'responsive-value';
+                });
 
                 // Update freshness indicator and store the exact timestamp
                 this._checkDataFreshness(new Date(indoorData.date));
@@ -275,28 +291,28 @@ class OutdoorTemperaturePanel extends Panel {
             // Current outdoor temperature (round and style like indoor)
             if (typeof outdoor.temperature === 'number') {
                 const t = Math.round(outdoor.temperature * 10) / 10;
-                if (this.tempElement) {
-                    this.tempElement.textContent = `${t}°C`;
-                    this.tempElement.className = 'responsive-value';
-                    this._applyTemperatureClass(t, this.tempElement);
-                }
+                flashIfChanged(this.tempElement, `${t}°C`, el => {
+                    el.className = 'responsive-value';
+                    this._applyTemperatureClass(t, el);
+                });
             } else {
-                if (this.tempElement) {
-                    this.tempElement.textContent = '--°C';
-                    this.tempElement.className = 'responsive-value';
-                }
+                flashIfChanged(this.tempElement, '--°C', el => {
+                    el.className = 'responsive-value';
+                });
             }
 
             // Show predicted temperature in ~1 hour (rounded + styled)
             if (this.predElement) {
                 if (typeof outdoor.predictedTemperature1h === 'number') {
                     const p = Math.round(outdoor.predictedTemperature1h * 10) / 10;
-                    this.predElement.textContent = `${p}°C`;
-                    this.predElement.className = 'responsive-value';
-                    this._applyTemperatureClass(p, this.predElement);
+                    flashIfChanged(this.predElement, `${p}°C`, el => {
+                        el.className = 'responsive-value';
+                        this._applyTemperatureClass(p, el);
+                    });
                 } else {
-                    this.predElement.textContent = '--°C';
-                    this.predElement.className = 'responsive-value';
+                    flashIfChanged(this.predElement, '--°C', el => {
+                        el.className = 'responsive-value';
+                    });
                 }
             }
 
@@ -348,11 +364,11 @@ class OutdoorTemperaturePanel extends Panel {
      */
     _updateRainDisplay(outdoor) {
         if (typeof outdoor.rainProbability === 'number') {
-            this.rainElement.textContent = `Pravděpodobnost deště: ${outdoor.rainProbability}%`;
+            flashIfChanged(this.rainElement, `Pravděpodobnost deště: ${outdoor.rainProbability}%`);
         } else if (typeof outdoor.precipitation === 'number') {
-            this.rainElement.textContent = `Srážky: ${outdoor.precipitation} mm`;
+            flashIfChanged(this.rainElement, `Srážky: ${outdoor.precipitation} mm`);
         } else {
-            this.rainElement.textContent = 'Žádná data o srážkách';
+            flashIfChanged(this.rainElement, 'Žádná data o srážkách');
         }
     }
 }

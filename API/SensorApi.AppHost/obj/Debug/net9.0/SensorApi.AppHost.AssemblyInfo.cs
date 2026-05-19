@@ -24,7 +24,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SensorApi.AppHost")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+90cfa6e1c43701e006d8550a4e30f4a0d5c67957")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+82a05f7d7d5b614315088be49185c3721cdbbab9")]
 [assembly: System.Reflection.AssemblyProductAttribute("SensorApi.AppHost")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SensorApi.AppHost")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
