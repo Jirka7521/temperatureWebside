@@ -167,6 +167,14 @@ body {
     min-height: 0;
 }
 
+/* Make the chart column's height definite so height:100% resolves
+   correctly all the way down to the canvas */
+.row-grow-3 > .col-12 {
+    height:     100%;
+    min-height: 0;
+    overflow:   hidden;
+}
+
 .row.g-3 {
     --bs-gutter-y: 0.3rem;
     margin-bottom: 0.3rem !important;
@@ -337,9 +345,8 @@ body {
 .chart-container {
     position:  relative;
     width:     100%;
-    flex-grow: 1;
+    flex-grow: 1;     /* fills card-body; no height:100% needed alongside flex-grow */
     overflow:  hidden;
-    height:    100%;
 }
 
 #weatherChart {
