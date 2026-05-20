@@ -166,3 +166,90 @@ def get_past(
     """Compatibility wrapper that delegates to `/data/query`."""
 
     return query_readings(start=start, end=end, interval=interval)
+
+
+@app.get("/data/list")
+def list_readings_paginated(
+    start: Optional[datetime] = Query(None),
+    end: Optional[datetime] = Query(None),
+    search: Optional[str] = Query(None, max_length=100),
+    sort_by: str = Query("date"),
+    sort_dir: str = Query("desc"),
+    page: int = Query(1, gt=0),
+    page_size: int = Query(25, gt=0, le=500),
+) -> dict:
+    """Return paginated, filterable, and sortable sensor readings for the data table.
+
+    Only the rows for the requested page are fetched from the database, making
+    this endpoint efficient regardless of the total number of stored readings.
+
+    Parameters
+    ----------
+    start, end:   Optional UTC datetime bounds (inclusive).
+    search:       Free-text filter applied to temperature, humidity, and date.
+    sort_by:      Column to sort by — 'date', 'temperature', or 'humidity'.
+    sort_dir:     'asc' or 'desc'.
+    page:         1-based page number.
+    page_size:    Rows per page (max 500).
+    """
+
+    # Whitelist sort columns and direction to prevent SQL injection
+    allowed_cols: dict[str, str] = {
+        "date": "Date",
+        "temperature": "Temperature",
+        "humidity": "Humidity",
+    }
+    order_col = allowed_cols.get(sort_by.lower(), "Date")
+    order_dir = "DESC" if sort_dir.lower() == "desc" else "ASC"
+
+    conditions: list[str] = []
+    params: list = []
+
+    if start:
+        conditions.append("Date >= %s")
+        params.append(start)
+    if end:
+        conditions.append("Date <= %s")
+        params.append(end)
+    if search:
+        conditions.append(
+            "(CAST(Temperature AS TEXT) LIKE %s"
+            " OR CAST(Humidity AS TEXT) LIKE %s"
+            " OR CAST(Date AS TEXT) LIKE %s)"
+        )
+        like_val = f"%{search}%"
+        params.extend([like_val, like_val, like_val])
+
+    where_clause = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+
+    count_sql = f"SELECT COUNT(*) FROM SensorTable {where_clause}"
+    data_sql = (
+        f"SELECT Temperature, Humidity, Date FROM SensorTable"
+        f" {where_clause}"
+        f" ORDER BY {order_col} {order_dir}"
+        f" LIMIT %s OFFSET %s"
+    )
+
+    offset = (page - 1) * page_size
+
+    with get_db_connection() as conn:
+        total: int = conn.execute(count_sql, params).fetchone()[0]
+        rows = conn.execute(data_sql, params + [page_size, offset]).fetchall()
+
+    data = [
+        {
+            "temperature": r[0],
+            "humidity": r[1],
+            "date": r[2].isoformat() if r[2] else None,
+        }
+        for r in rows
+    ]
+    total_pages = ((total + page_size - 1) // page_size) if total > 0 else 0
+
+    return {
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": total_pages,
+        "data": data,
+    }

@@ -493,7 +493,13 @@ class DashboardController {
     }
 }
 
-// Initialize the dashboard when the document is ready
+// Initialize the dashboard only when the expected DOM elements are present.
+// On the data page (data.html) the dashboard elements don't exist, so only
+// a ConfigManager is created to resolve window.configPromise for dataTable.js.
 document.addEventListener('DOMContentLoaded', () => {
-    new DashboardController();
+    if (document.getElementById('temperature')) {
+        new DashboardController();
+    } else {
+        new ConfigManager();
+    }
 });

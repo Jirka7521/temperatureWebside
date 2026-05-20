@@ -1,428 +1,648 @@
 /*****************************************************************************
  * METEOROLOGICKÝ PANEL - STYLESHEET
- * Organization: Layout styles, component styles, responsive adjustments
+ *
+ * Sections:
+ *   0. CSS Variables (theme)
+ *   1. Base layout & body
+ *   2. Top navigation bar  (desktop only)
+ *   3. Tab panels
+ *   4. Dashboard – card components
+ *   5. Dashboard – temperature & humidity display
+ *   6. Dashboard – status bar
+ *   7. Dashboard – chart styles & controls
+ *   8. Data panel – filter bar
+ *   9. Data panel – table
+ *  10. Data panel – pagination bar
+ *  11. Shared utilities & animations
+ *  12. Responsive breakpoints
  *****************************************************************************/
 
-/* Theme variables: light by default, dark when `body.dark` is set */
-:root{
-    --bg: #f8f9fa;
-    --card-bg: #ffffff;
+/* ============================================================
+ * 0. CSS VARIABLES — light by default, dark when body.dark
+ * ============================================================ */
+:root {
+    --bg:           #f8f9fa;
+    --card-bg:      #ffffff;
     --text-primary: #212529;
-    --text-muted: #6c757d;
-    --accent: #3888ff;
-    --rain: #7fbbf3;
-    /* Gridline color for charts (light mode) */
-    --gridline: rgba(108, 117, 125, 0.35); /* based on text-muted */
+    --text-muted:   #6c757d;
+    --accent:       #3888ff;
+    --rain:         #7fbbf3;
+    --gridline:     rgba(108, 117, 125, 0.35);
+
+    --top-nav-height: 48px;
+
+    /* Data table */
+    --table-header-bg:  #f1f3f5;
+    --table-row-hover:  rgba(56, 136, 255, 0.07);
+    --table-border:     rgba(108, 117, 125, 0.2);
 }
 
-body.dark{
-    --bg: #0b1220;
-    --card-bg: #0f1724;
+body.dark {
+    --bg:           #0b1220;
+    --card-bg:      #0f1724;
     --text-primary: #e6eef8;
-    --text-muted: #9aa6b2;
-    --accent: #66b2ff;
-    --rain: #7fb3ff;
-    /* Gridline color for charts (dark mode) */
-    --gridline: rgba(230, 238, 248, 0.18); /* white-ish, subtle */
+    --text-muted:   #9aa6b2;
+    --accent:       #66b2ff;
+    --rain:         #7fb3ff;
+    --gridline:     rgba(230, 238, 248, 0.18);
+
+    --table-header-bg:  #131e2e;
+    --table-row-hover:  rgba(102, 178, 255, 0.09);
+    --table-border:     rgba(230, 238, 248, 0.12);
 }
 
 
-/* -----------------------------------------
- * 1. BASE LAYOUT & CONTAINER STYLES
- * ----------------------------------------- */
+/* ============================================================
+ * 1. BASE LAYOUT & BODY
+ * ============================================================ */
 
-/* Lock page to exactly the viewport — no scrolling on any device */
-html, body {
+html {
     height: 100%;
     margin: 0;
     padding: 0;
     overflow: hidden;
 }
 
-body, .container-fluid {
+/* Body is a flex column so the top-nav and tab panels stack naturally */
+body {
     height: 100vh;
     max-height: 100vh;
+    margin: 0;
+    padding: 0;
     overflow: hidden;
-}
-
-/* Dashboard container uses flex column layout */
-.dashboard-rows {
     display: flex;
     flex-direction: column;
-    height: 100vh;
-    padding: 0.5rem !important; /* Reduce container padding */
+    background: var(--bg);
+    color: var(--text-primary);
 }
 
-/* Row height distribution for dashboard sections */
-.row-grow-1 {
-    flex: 1; /* Top temperature panels - increased by 50% */
+
+/* ============================================================
+ * 2. TOP NAVIGATION BAR  (desktop — d-none d-md-flex)
+ * ============================================================ */
+
+.top-nav {
+    height: var(--top-nav-height);
+    flex-shrink: 0;
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--table-border);
+    display: flex;
+    align-items: center;
+    padding: 0 1rem;
+    z-index: 200;
 }
 
-.row-grow-2 {
-    flex: 0.3 0 auto; /* Time info - minimal space */
+/* Three equal-flex sections so centre is truly centred */
+.top-nav-section {
+    flex: 1;
+    display: flex;
+    align-items: center;
 }
 
-.row-grow-3 {
-    flex: 1.4; /* Reduced to give more room for header/status and avoid overflow */
+.top-nav-left  { justify-content: flex-start; gap: 0.25rem; }
+.top-nav-center{ justify-content: center; }
+.top-nav-right { justify-content: flex-end;  gap: 0.4rem; }
+
+/* Page-navigation links inside top nav (styled as tab buttons) */
+.top-tab-btn {
+    display:         inline-flex;
+    align-items:     center;
+    background:      transparent;
+    border:          none;
+    border-bottom:   2px solid transparent;
+    color:           var(--text-muted);
+    font-size:       0.95rem;
+    font-weight:     600;
+    padding:         0 0.9rem;
+    height:          var(--top-nav-height);
+    text-decoration: none;
+    cursor:          pointer;
+    transition:      color 0.15s, border-color 0.15s;
 }
 
-/* Allow flex children to shrink properly and prevent content overflow */
-.row-grow-3, .card, .card-body, .chart-container {
+.top-tab-btn.active {
+    color:               var(--accent);
+    border-bottom-color: var(--accent);
+}
+
+.top-tab-btn:hover:not(.active) {
+    color:           var(--text-primary);
+    text-decoration: none;
+}
+
+
+/* ============================================================
+ * 3. PAGE CONTENT — fills the viewport below the top nav
+ *
+ * Both pages (index.html and data.html) place their main content
+ * directly as a flex child of body, so it automatically fills the
+ * space below the top nav without requiring a fixed height.
+ * ============================================================ */
+
+/* dashboard-rows and data-panel-content are both direct body children */
+
+
+/* ============================================================
+ * 4. DASHBOARD – CARD COMPONENTS
+ * ============================================================ */
+
+/* Dashboard rows fill the tab panel */
+.dashboard-rows {
+    display:        flex;
+    flex-direction: column;
+    flex:           1;
+    min-height:     0;
+    padding:        0.5rem !important;
+}
+
+.row-grow-1 { flex: 1; }
+.row-grow-2 { flex: 0.3 0 auto; }
+.row-grow-3 { flex: 1.4; }
+
+/* Prevent overflow in flex children */
+.row-grow-3,
+.card,
+.card-body,
+.chart-container {
     min-height: 0;
 }
 
-/* Row spacing adjustments */
+/* Make the chart column's height definite so height:100% resolves
+   correctly all the way down to the canvas */
+.row-grow-3 > .col-12 {
+    height:     100%;
+    min-height: 0;
+    overflow:   hidden;
+}
+
 .row.g-3 {
     --bs-gutter-y: 0.3rem;
     margin-bottom: 0.3rem !important;
 }
 
-.mb-2 {
-    margin-bottom: 0.3rem !important;
-}
+.mb-2 { margin-bottom: 0.3rem !important; }
 
-/* -----------------------------------------
- * 2. CARD COMPONENT STYLES
- * ----------------------------------------- */
-
-/* Make cards fill their parent containers */
 .card {
-    height: 100%;
+    height:     100%;
     background: var(--card-bg);
-    border: 0;
+    border:     0;
 }
 
-/* Card body uses flex for vertical centering */
 .card-body {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    padding: 0.5rem !important; /* Reduced padding */
+    height:          100%;
+    display:         flex;
+    flex-direction:  column;
+    padding:         0.5rem !important;
     justify-content: center;
-    align-items: center;
-    color: var(--text-primary);
+    align-items:     center;
+    color:           var(--text-primary);
 }
 
-/* Icon button styling (ghost button) */
+/* Ghost / icon button */
 .btn-ghost {
     background: transparent;
-    border: none;
-    color: var(--text-primary);
-    padding: 0.25rem 0.4rem;
+    border:     none;
+    color:      var(--text-primary);
+    padding:    0.25rem 0.4rem;
 }
-.btn-ghost:hover{
-    color: var(--accent);
-}
+.btn-ghost:hover { color: var(--accent); }
 
-.theme-icon svg{ display: block; }
+.theme-icon svg { display: block; }
 
-/* -----------------------------------------
- * 3. TEMPERATURE & HUMIDITY DISPLAY
- * ----------------------------------------- */
 
-/* Responsive value text (temperature/humidity) */
+/* ============================================================
+ * 5. DASHBOARD – TEMPERATURE & HUMIDITY DISPLAY
+ * ============================================================ */
+
 .responsive-value {
-    font-size: clamp(1.8rem, 6vw, 5rem);
+    font-size:   clamp(1.8rem, 6vw, 5rem);
     line-height: 1;
-    margin: 0;
+    margin:      0;
 }
 
-/* Responsive title text */
 .responsive-title {
-    font-size: clamp(1.1rem, 2.5vw, 1.8rem); /* Smaller */
-    font-weight: 600;
+    font-size:     clamp(1.1rem, 2.5vw, 1.8rem);
+    font-weight:   600;
     margin-bottom: 0.3rem;
 }
 
 .row-grow-1 .responsive-value {
-    /* Slightly larger but still safe on 16:9 screens */
     font-size: clamp(3.8rem, 11vmin, 9.8rem);
 }
 
 .row-grow-1 .responsive-title {
-    font-size: clamp(1.5rem, 3.6vmin, 2.8rem);
-    margin-bottom: 0.6rem; /* Slightly more spacing */
+    font-size:     clamp(1.5rem, 3.6vmin, 2.8rem);
+    margin-bottom: 0.6rem;
 }
 
-.row-grow-1 .text-muted {
-    font-size: 1.2rem;
-    margin-top: 0.24rem;
-}
+.row-grow-1 .text-muted    { font-size: 1.2rem;  margin-top: 0.24rem; }
+.row-grow-1 .rain-forecast { font-size: clamp(1.45rem, 3.6vw, 2.4rem); margin-top: 0.55rem; }
 
-.row-grow-1 .rain-forecast {
-    font-size: clamp(1.45rem, 3.6vw, 2.4rem);
-    margin-top: 0.55rem;
-}
-
-/* Layout for temperature and humidity values */
 .temp-humidity-container {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
+    display:         flex;
+    flex-direction:  row;
+    align-items:     center;
     justify-content: center;
-    gap: clamp(1rem, 3.2vmin, 3rem);
-    flex-wrap: wrap;
+    gap:             clamp(1rem, 3.2vmin, 3rem);
+    flex-wrap:       wrap;
 }
 
-
-/* Forecast container for rain/other info */
 .forecast-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    display:         flex;
+    flex-direction:  column;
+    align-items:     center;
     justify-content: center;
-    width: 100%;
+    width:           100%;
 }
 
-/* Rain forecast text style */
 .rain-forecast {
     margin-top: 0.3rem;
-    font-size: clamp(0.9rem, 2vw, 1.5rem); /* Smaller */
-    color: var(--rain);
+    font-size:  clamp(0.9rem, 2vw, 1.5rem);
+    color:      var(--rain);
 }
 
-/* -----------------------------------------
- * 4. TIME DISPLAY STYLES
- * ----------------------------------------- */
+.text-muted {
+    color:      var(--text-muted) !important;
+    font-size:  0.8rem;
+    margin-top: 0.1rem;
+}
 
-/* Layout for time display */
+
+/* ============================================================
+ * 6. DASHBOARD – STATUS BAR
+ * ============================================================ */
+
 .time-container {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
+    display:         flex;
+    flex-direction:  row;
+    align-items:     center;
     justify-content: center;
-    gap: 0.75rem;
-    width: 100%;
-    font-size: clamp(0.9rem, 2vw, 1.5rem); /* Smaller */
+    gap:             0.75rem;
+    width:           100%;
+    font-size:       clamp(0.9rem, 2vw, 1.5rem);
 }
 
-.status-row {
-    flex: 0 0 auto;
+.status-row { flex: 0 0 auto; }
+
+.status-card {
+    position: relative;
 }
 
 .status-card .card-body {
     padding: 0.85rem 1.2rem !important;
 }
 
-/* Make status card a positioning context so theme-toggle can be centered */
-.status-card {
-    position: relative;
-}
-
-/* Place theme toggle inline inside the status card; center via flexbox */
 .status-card .theme-toggle {
-    position: static;
-    left: auto;
-    top: auto;
+    position:  static;
+    left:      auto;
+    top:       auto;
     transform: none;
-    z-index: auto;
+    z-index:   auto;
 }
-
-/* Prevent left/right texts from being overlapped by centered toggle on larger screens */
-@media (min-width: 768px) {
-    .status-card .card-body {
-        padding-left: 3.5rem !important;
-        padding-right: 3.5rem !important;
-    }
-    .status-card .status-text {
-        flex: 1 1 0;
-    }
-}
-
-/* Mobile fallback: keep toggle in normal flow on small screens */
-@media (max-width: 767.98px) {
-    .status-card .theme-toggle {
-        position: static;
-        transform: none;
-        margin: 0.4rem auto;
-    }
-}
-
-/* (middle-toggle removed — theme toggle is now inside status card) */
 
 .status-text {
-    font-size: clamp(1.2rem, 2.8vw, 2rem);
+    font-size:   clamp(1.2rem, 2.8vw, 2rem);
     font-weight: 600;
-    color: var(--text-primary);
-    text-align: center;
+    color:       var(--text-primary);
+    text-align:  center;
 }
 
-/* When time-since is considered expired (stale), highlight it */
-.status-text.time-expired {
-    color: #dc3545; /* Bootstrap danger red for visibility */
-}
+.status-text.time-expired { color: #dc3545; }
 
 @media (min-width: 768px) {
-    .status-text {
-        text-align: left;
+    .status-card .card-body {
+        padding-left:  3.5rem !important;
+        padding-right: 3.5rem !important;
+    }
+    .status-card .status-text { flex: 1 1 0; }
+    .status-text              { text-align: left; }
+}
+
+@media (max-width: 767.98px) {
+    .status-card .theme-toggle {
+        position:  static;
+        transform: none;
+        margin:    0.4rem auto;
     }
 }
 
-/* -----------------------------------------
- * 5. CHART STYLES & CONTROLS
- * ----------------------------------------- */
 
-/* Controls above the chart (title, buttons) */
+/* ============================================================
+ * 7. DASHBOARD – CHART STYLES & CONTROLS
+ * ============================================================ */
+
 .chart-controls {
-    display: flex;
+    display:         flex;
     justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    margin-bottom: 0.3rem;
-    flex-shrink: 0;
+    align-items:     center;
+    width:           100%;
+    margin-bottom:   0.3rem;
+    flex-shrink:     0;
 }
 
-/* Make title text in chart controls smaller */
-.chart-controls .fs-4 {
-    font-size: 1.1rem !important; /* Override Bootstrap */
-}
+.chart-controls .fs-4 { font-size: 1.1rem !important; }
 
-/* Chart container fills available space; flexbox controls sizing so no fixed max-height */
 .chart-container {
-    position: relative;
-    width: 100%;
-    flex-grow: 1;
-    overflow: hidden;
-    height: 100%;
+    position:  relative;
+    width:     100%;
+    flex-grow: 1;     /* fills card-body; no height:100% needed alongside flex-grow */
+    overflow:  hidden;
 }
 
-/* Weather chart sizing */
 #weatherChart {
-    display: block;
-    width: 100% !important;
-    height: 100% !important;
+    display:    block;
+    width:      100% !important;
+    height:     100% !important;
     max-height: 100%;
     box-sizing: border-box;
 }
 
-/* Button controls styling */
-.btn-group .btn {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.875rem;
-}
+.btn-group .btn { padding: 0.25rem 0.5rem; font-size: 0.875rem; }
 
-/* Chart mode toggle buttons (24h / 7d) */
 .chart-mode-btn {
-    background: transparent;
-    border: 1px solid var(--text-muted);
-    color: var(--text-muted);
+    background:  transparent;
+    border:      1px solid var(--text-muted);
+    color:       var(--text-muted);
     border-radius: 4px;
-    padding: 0.2rem 0.55rem;
-    font-size: clamp(1rem, 1.5vw, 1.35rem);
+    padding:     0.2rem 0.55rem;
+    font-size:   clamp(0.85rem, 1.3vw, 1.15rem);
     font-weight: 600;
-    cursor: pointer;
-    transition: background 0.18s, color 0.18s, border-color 0.18s;
+    cursor:      pointer;
+    transition:  background 0.18s, color 0.18s, border-color 0.18s;
     line-height: 1.4;
 }
 
 .chart-mode-btn.active {
-    background: var(--accent);
+    background:   var(--accent);
     border-color: var(--accent);
-    color: #fff;
+    color:        #fff;
 }
 
 .chart-mode-btn:hover:not(.active) {
-    color: var(--accent);
+    color:        var(--accent);
     border-color: var(--accent);
 }
 
-/* Flash animation — triggered only when a displayed value changes */
+
+/* ============================================================
+ * 8. DATA PANEL – FILTER BAR
+ * ============================================================ */
+
+.data-panel-content {
+    display:        flex;
+    flex-direction: column;
+    flex:           1;
+    min-height:     0;
+    overflow:       hidden;
+}
+
+.data-filters-bar {
+    flex-shrink: 0;
+    background:  var(--card-bg);
+    border-bottom: 1px solid var(--table-border);
+    padding:     0.6rem 1.2rem;
+}
+
+.data-filters-row {
+    display:     flex;
+    align-items: flex-end;
+    gap:         1rem;
+    flex-wrap:   wrap;
+}
+
+.filter-group {
+    display:        flex;
+    flex-direction: column;
+    gap:            0.2rem;
+}
+
+.filter-search { flex: 1 1 200px; }
+
+.filter-label {
+    font-size:   0.75rem;
+    font-weight: 600;
+    color:       var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.filter-input,
+.filter-select {
+    background:  var(--bg);
+    color:       var(--text-primary);
+    border:      1px solid var(--table-border);
+    border-radius: 4px;
+    padding:     0.3rem 0.55rem;
+    font-size:   0.9rem;
+    outline:     none;
+    transition:  border-color 0.15s;
+}
+
+.filter-input:focus,
+.filter-select:focus {
+    border-color: var(--accent);
+}
+
+.filter-search .filter-input { width: 100%; }
+
+
+/* ============================================================
+ * 9. DATA PANEL – TABLE
+ * ============================================================ */
+
+.data-table-wrapper {
+    flex:       1;
+    overflow-y: auto;
+    overflow-x: auto;
+    min-height: 0;
+}
+
+.data-table {
+    width:           100%;
+    border-collapse: collapse;
+    font-size:       0.9rem;
+    color:           var(--text-primary);
+}
+
+.data-table thead th {
+    position:        sticky;
+    top:             0;
+    background:      var(--table-header-bg);
+    color:           var(--text-primary);
+    font-weight:     700;
+    font-size:       0.8rem;
+    text-transform:  uppercase;
+    letter-spacing:  0.04em;
+    padding:         0.6rem 1rem;
+    border-bottom:   2px solid var(--table-border);
+    white-space:     nowrap;
+    z-index:         10;
+}
+
+.data-table thead th.sortable {
+    cursor:          pointer;
+    user-select:     none;
+}
+
+.data-table thead th.sortable:hover {
+    color: var(--accent);
+}
+
+.data-table thead th.active-sort {
+    color: var(--accent);
+}
+
+.sort-icon {
+    display:     inline-block;
+    width:       1.2em;
+    text-align:  center;
+    font-size:   0.85em;
+    opacity:     0.8;
+}
+
+.data-table tbody tr {
+    border-bottom: 1px solid var(--table-border);
+    transition:    background 0.1s;
+}
+
+.data-table tbody tr:hover {
+    background: var(--table-row-hover);
+}
+
+.data-table tbody td {
+    padding:    0.55rem 1rem;
+    white-space: nowrap;
+}
+
+/* Table state cells (loading / empty / error) */
+.table-loading,
+.table-empty,
+.table-error {
+    text-align:  center;
+    padding:     2rem 1rem;
+    color:       var(--text-muted);
+    font-style:  italic;
+}
+
+.table-error { color: #dc3545; }
+
+
+/* ============================================================
+ * 10. DATA PANEL – PAGINATION BAR
+ * ============================================================ */
+
+.data-pagination-bar {
+    flex-shrink:     0;
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    gap:             0.75rem;
+    padding:         0.55rem 1rem;
+    background:      var(--card-bg);
+    border-top:      1px solid var(--table-border);
+    font-size:       0.9rem;
+    color:           var(--text-primary);
+}
+
+.page-btn {
+    background:    transparent;
+    border:        1px solid var(--table-border);
+    color:         var(--text-primary);
+    border-radius: 4px;
+    padding:       0.25rem 0.7rem;
+    font-size:     0.85rem;
+    font-weight:   600;
+    cursor:        pointer;
+    transition:    background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.page-btn:hover:not(:disabled) {
+    background:   var(--accent);
+    border-color: var(--accent);
+    color:        #fff;
+}
+
+.page-btn:disabled {
+    opacity: 0.4;
+    cursor:  not-allowed;
+}
+
+.page-info {
+    font-weight: 600;
+    min-width:   8rem;
+    text-align:  center;
+}
+
+.total-info {
+    color:    var(--text-muted);
+    font-size: 0.82rem;
+}
+
+
+/* ============================================================
+ * 11. SHARED UTILITIES & ANIMATIONS
+ * ============================================================ */
+
+/* Flash animation triggered when a displayed sensor value changes */
 @keyframes value-flash {
     from { opacity: 0; }
     to   { opacity: 1; }
 }
-.value-flash {
-    animation: value-flash 0.4s ease;
-}
 
-/* Temperature indicator text (muted) */
-.text-muted {
-    color: var(--text-muted) !important; /* ensure contrast in dark mode, override Bootstrap */
-    font-size: 0.8rem;
-    margin-top: 0.1rem;
-}
+.value-flash { animation: value-flash 0.4s ease; }
 
-/* -----------------------------------------
- * 6. RESPONSIVE DESIGN ADJUSTMENTS
- * ----------------------------------------- */
+.time-separator { display: inline; }
+
+
+/* ============================================================
+ * 12. RESPONSIVE BREAKPOINTS
+ * ============================================================ */
+
 @media (max-width: 991.98px) {
-    /* Stack temp/humidity vertically on smaller screens */
     .temp-humidity-container {
         flex-direction: column;
-        gap: 0.25rem; /* Even smaller gap on mobile */
+        gap: 0.25rem;
     }
 
-    .temp-humidity-container.swapped {
-        flex-direction: column-reverse;
-    }
+    .temp-humidity-container.swapped { flex-direction: column-reverse; }
 
-    /* Stack time info vertically */
     .time-container {
         flex-direction: column;
         gap: 0.15rem;
     }
 
-    /* Hide time separator on mobile */
-    .time-separator {
-        display: none;
-    }
+    .time-separator { display: none; }
 
-    /* Adjust row proportions for mobile */
-    .row-grow-1 {
-        flex: 1 0 auto;
-    }
-
-    .row-grow-2 {
-        flex: 0.25 0 auto;
-    }
-
-    .row-grow-3 {
-        flex: 2.2 1 auto;
-    }
+    .row-grow-1 { flex: 1 0 auto; }
+    .row-grow-2 { flex: 0.25 0 auto; }
+    .row-grow-3 { flex: 2.2 1 auto; }
 }
 
 @media (max-width: 767.98px) {
     /* Stack the two temp cards vertically and fill the viewport */
     .row-grow-1 {
-        flex: 1 1 0 !important;
+        flex:         1 1 0 !important;
         flex-direction: column !important;
-        flex-wrap: nowrap !important;
+        flex-wrap:    nowrap !important;
     }
 
     .row-grow-1 > [class*="col-"] {
-        flex: 1 1 0 !important;
+        flex:      1 1 0 !important;
         max-width: 100% !important;
         min-height: 0;
     }
 
-    /* Larger values and titles to fill the card space */
-    .row-grow-1 .responsive-value {
-        font-size: clamp(5rem, 24vw, 9rem);
-    }
+    .row-grow-1 .responsive-value  { font-size: clamp(5rem, 24vw, 9rem); }
+    .row-grow-1 .responsive-title  { font-size: clamp(1.3rem, 5.5vw, 2.2rem); margin-bottom: 0.4rem; }
+    .row-grow-1 .text-muted        { font-size: 1rem; margin-top: 0.15rem; }
+    .row-grow-1 .rain-forecast     { font-size: clamp(1.1rem, 4.5vw, 1.8rem); margin-top: 0.4rem; }
 
-    .row-grow-1 .responsive-title {
-        font-size: clamp(1.3rem, 5.5vw, 2.2rem);
-        margin-bottom: 0.4rem;
-    }
-
-    .row-grow-1 .text-muted {
-        font-size: 1rem;
-        margin-top: 0.15rem;
-    }
-
-    .row-grow-1 .rain-forecast {
-        font-size: clamp(1.1rem, 4.5vw, 1.8rem);
-        margin-top: 0.4rem;
-    }
-
-    /* Status card: put theme toggle and time-since side by side, compact */
+    /* Status card: single row on mobile */
     .status-card .card-body {
-        flex-direction: row !important;
+        flex-direction:  row !important;
         justify-content: space-between !important;
-        padding: 0.5rem 0.75rem !important;
+        padding:         0.5rem 0.75rem !important;
     }
 
-    .status-text {
-        font-size: clamp(0.95rem, 3.5vw, 1.3rem);
-    }
+    .status-text { font-size: clamp(0.95rem, 3.5vw, 1.3rem); }
 }

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meteorologický panel – Data</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
+    <link rel="icon" href="Icon.ico" type="image/x-icon">
+    <link rel="shortcut icon" href="Icon.ico" type="image/x-icon">
+</head>
+<body class="bg-light">
+
+    <!--
+        TOP NAVIGATION BAR (desktop only — hidden on mobile via d-none d-md-flex)
+        Contains: page links (left) | dark-mode toggle (centre) | (right reserved)
+    -->
+    <nav class="top-nav d-none d-md-flex">
+        <!-- Left: page navigation -->
+        <div class="top-nav-section top-nav-left">
+            <a href="index.html" class="top-tab-btn">Dashboard</a>
+            <a href="data.html"  class="top-tab-btn active">Data</a>
+        </div>
+
+        <!-- Centre: dark-mode toggle -->
+        <div class="top-nav-section top-nav-center">
+            <button id="themeButtonDesktop"
+                    class="btn btn-sm btn-ghost"
+                    aria-label="Přepnout tmavý režim"
+                    title="Přepnout tmavý režim">
+                <span id="themeIconDesktop" class="theme-icon" aria-hidden="true"></span>
+            </button>
+        </div>
+
+        <!-- Right: placeholder to keep centre truly centred -->
+        <div class="top-nav-section top-nav-right"></div>
+    </nav>
+
+    <!-- Data panel — fills the remaining viewport height below the nav -->
+    <div class="data-panel-content">
+
+        <!-- Filter / control bar -->
+        <div class="data-filters-bar">
+            <div class="data-filters-row">
+
+                <div class="filter-group">
+                    <label for="filterFrom" class="filter-label">Od:</label>
+                    <input type="datetime-local" id="filterFrom" class="filter-input">
+                </div>
+
+                <div class="filter-group">
+                    <label for="filterTo" class="filter-label">Do:</label>
+                    <input type="datetime-local" id="filterTo" class="filter-input">
+                </div>
+
+                <div class="filter-group filter-search">
+                    <label for="filterSearch" class="filter-label">Hledat:</label>
+                    <input type="text" id="filterSearch" class="filter-input"
+                           placeholder="Hledat v datech…">
+                </div>
+
+                <div class="filter-group filter-pagesize">
+                    <label for="pageSizeSelect" class="filter-label">Na stránku:</label>
+                    <select id="pageSizeSelect" class="filter-select">
+                        <option value="10">10</option>
+                        <option value="25" selected>25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Scrollable table area -->
+        <div class="data-table-wrapper">
+            <table id="sensorDataTable" class="data-table">
+                <thead>
+                    <tr>
+                        <th class="sortable" data-col="date">
+                            <span>Datum a čas</span>
+                            <span class="sort-icon" aria-hidden="true"></span>
+                        </th>
+                        <th class="sortable" data-col="temperature">
+                            <span>Teplota (°C)</span>
+                            <span class="sort-icon" aria-hidden="true"></span>
+                        </th>
+                        <th class="sortable" data-col="humidity">
+                            <span>Vlhkost (%)</span>
+                            <span class="sort-icon" aria-hidden="true"></span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody id="sensorDataTableBody">
+                    <tr>
+                        <td colspan="3" class="table-loading">Načítání dat…</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination bar -->
+        <div class="data-pagination-bar">
+            <button id="prevPage" class="page-btn" disabled>&#8592; Předchozí</button>
+            <span id="pageInfo" class="page-info">Strana 1 z 1</span>
+            <button id="nextPage" class="page-btn" disabled>Další &#8594;</button>
+            <span id="totalInfo" class="total-info"></span>
+        </div>
+
+    </div><!-- .data-panel-content -->
+
+    <!--
+        Script load order:
+        1. darkmode.js  — applies theme before first render
+        2. config.js    — sets window.inlineConfig / window.configPromise
+        3. dataTable.js — DataTable class + bootstrap
+    -->
+    <script src="darkmode.js"></script>
+    <script src="config.js"></script>
+    <script src="getValues.js"></script>
+    <script src="dataTable.js"></script>
+
+</body>
+</html>
