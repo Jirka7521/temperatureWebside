@@ -80,11 +80,29 @@ Note: [ESP32/ESP32TempSensor/include/config.h](ESP32/ESP32TempSensor/include/con
 ## Web Dashboard
 
 - Frontend files are in [webside](webside).
-- [webside/index.html](webside/index.html): Responsive layout with Bootstrap, indoor/outdoor panels, and a 24-hour chart.
-- [webside/style.css](webside/style.css): Responsive styles and card/chart layout.
+- [webside/index.html](webside/index.html): Responsive layout with Bootstrap. Includes a pinned top navigation bar (desktop only) for switching between the Dashboard and Data tabs.
+- [webside/style.css](webside/style.css): Responsive styles, card/chart layout, top nav, and data table.
 - [webside/config.js](webside/config.js): Central endpoints and refresh/threshold settings.
 - [webside/getValues.js](webside/getValues.js): Periodic data fetch and UI updates.
 - [webside/chartSetup.js](webside/chartSetup.js): Chart.js setup for indoor/outdoor history.
+- [webside/darkmode.js](webside/darkmode.js): Theme toggle, syncs both the mobile and desktop buttons.
+- [webside/dataTable.js](webside/dataTable.js): `DataTable` and `TabController` classes for the data tab.
+
+### Dashboard tab
+
+The default view — shows the current indoor and outdoor readings, a status bar, and a historical chart. The status bar displays the current time and time since the last sensor update. On desktop, the 24 h / 7 d chart mode buttons and the dark-mode toggle live in the pinned top nav bar. On mobile, only the temperature cards and the status bar (with the dark-mode toggle) are visible.
+
+### Data tab (desktop only)
+
+A full-featured data browser accessible via the **Data** button in the top nav bar. Features:
+
+| Feature | Details |
+|---------|---------|
+| **Pagination** | Configurable rows per page (10 / 25 / 50 / 100). Only the current page is fetched from the database. |
+| **Date/time filter** | From and To datetime-local pickers. Default range is the last 24 hours. |
+| **Free-text search** | Filters across temperature, humidity, and date columns. |
+| **Sorting** | Click any column header to sort ascending or descending. Active sort is indicated by an arrow. |
+| **Efficient queries** | Every page change, filter, or sort issues a single `GET /data/list` request with `LIMIT`/`OFFSET`, so the database never returns more rows than shown. |
 
 ## Running the Project
 
@@ -234,6 +252,44 @@ To deploy the dashboard to a static web hosting service:
 - The dashboard frontend is hosted on a static web app service.
 - The backend REST API is deployed separately and provides endpoints for storing and retrieving indoor sensor data.
 - The frontend communicates with the backend API using HTTPS.
+
+### API Endpoints (Python FastAPI backend)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/health` | Liveness check — returns `{"status":"ok","host_ip":"..."}` |
+| `GET` | `/meta` | Host IP for debugging |
+| `GET` | `/getCurrent` | Most recent sensor reading (array of one item) |
+| `POST` | `/data/insert` | Insert a new reading `{temperature, humidity, date?}` |
+| `GET` | `/data/query` | Downsampled time-range query (`start`, `end`, `interval` in seconds) |
+| `GET` | `/getPast` | Alias for `/data/query` (frontend compatibility) |
+| `GET` | `/data/list` | **Paginated data table endpoint** — see parameters below |
+
+#### `/data/list` query parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `start` | datetime | — | Range start (inclusive) |
+| `end` | datetime | — | Range end (inclusive) |
+| `search` | string | — | Free-text filter applied to temperature, humidity, and date |
+| `sort_by` | `date`\|`temperature`\|`humidity` | `date` | Sort column |
+| `sort_dir` | `asc`\|`desc` | `desc` | Sort direction |
+| `page` | integer ≥ 1 | `1` | Page number |
+| `page_size` | 1–500 | `25` | Rows per page |
+
+Response shape:
+
+```json
+{
+  "total": 1234,
+  "page": 1,
+  "page_size": 25,
+  "pages": 50,
+  "data": [
+    { "temperature": 22.5, "humidity": 48.0, "date": "2025-05-20T14:00:00+00:00" }
+  ]
+}
+```
 
 ## Database Structure
 
