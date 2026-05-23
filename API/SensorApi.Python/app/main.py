@@ -16,7 +16,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from .db import get_db_connection, init_db
+from .db import get_db_connection, init_db, pool
 from .netinfo import get_host_ip
 
 
@@ -48,18 +48,26 @@ app.add_middleware(
 
 @app.on_event("startup")
 def on_startup() -> None:
-    """Initialize DB and determine the host IP to expose via metadata.
+    """Open the DB connection pool, initialize the DB, and determine the host IP.
 
     The host IP can be forced by setting the `BACKEND_FIXED_IP` environment
     variable (useful when running in containers).
     """
 
+    pool.open()
     init_db()
 
     fixed = os.getenv("BACKEND_FIXED_IP")
     host_ip = fixed or get_host_ip()
     app.state.host_ip = host_ip
     print(f"[startup] detected host IP: {host_ip}")
+
+
+@app.on_event("shutdown")
+def on_shutdown() -> None:
+    """Close the connection pool so its sockets are released cleanly."""
+
+    pool.close()
 
 
 @app.get("/health")

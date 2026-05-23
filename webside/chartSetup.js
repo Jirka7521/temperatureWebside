@@ -32,11 +32,68 @@ class TemperatureChart {
         this.temperatureData = { labels: [], values: [], times: [] };
         this.indoorData = [];
         this.indoorHumidityData = [];
+        // UTC offset (ms) of the measurement location. Captured from Open-Meteo
+        // so the chart renders in the location's local time regardless of the
+        // browser's timezone. Stays null until the first outdoor fetch.
+        this.positionOffsetMs = null;
 
         this._initChart();
         this._loadData();
         this._setupRefreshTimers();
         this._setupModeToggle();
+    }
+
+    /**
+     * UTC offset (ms) used to render the chart in the measurement location's
+     * local time, independent of the browser's timezone. Falls back to the
+     * browser's own offset when the location offset is unknown, so viewers in
+     * the location's timezone see no change in behaviour.
+     * @private
+     * @returns {number}
+     */
+    _displayOffsetMs() {
+        if (this.positionOffsetMs !== null) return this.positionOffsetMs;
+        return -new Date().getTimezoneOffset() * 60 * 1000;
+    }
+
+    /**
+     * Format a true (UTC) instant as "HH:MM" in the location's local time.
+     * @private
+     */
+    _formatTimeLabel(date) {
+        const d = new Date(date.getTime() + this._displayOffsetMs());
+        const hh = String(d.getUTCHours()).padStart(2, '0');
+        const mm = String(d.getUTCMinutes()).padStart(2, '0');
+        return `${hh}:${mm}`;
+    }
+
+    /**
+     * Format a true (UTC) instant as "DD.MM HH:MM" in the location's local time.
+     * @private
+     */
+    _formatDateTimeLabel(date) {
+        const d = new Date(date.getTime() + this._displayOffsetMs());
+        const dd = String(d.getUTCDate()).padStart(2, '0');
+        const mo = String(d.getUTCMonth() + 1).padStart(2, '0');
+        const hh = String(d.getUTCHours()).padStart(2, '0');
+        const mm = String(d.getUTCMinutes()).padStart(2, '0');
+        return `${dd}.${mo} ${hh}:${mm}`;
+    }
+
+    /**
+     * Parse an Open-Meteo `timezone=auto` timestamp into a true (UTC) instant.
+     * Naive wall-clock strings (no timezone designator) are interpreted in the
+     * location's timezone; strings that already carry an offset/Z are taken as
+     * absolute instants. This keeps the outdoor series anchored to the same
+     * absolute time base as the indoor sensor readings.
+     * @private
+     */
+    _parseOutdoorLocal(value) {
+        if (typeof value !== 'string') return new Date(value);
+        const hasTz = value.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(value);
+        if (hasTz) return new Date(value);
+        const asUtc = Date.parse(value + 'Z');
+        return isNaN(asUtc) ? new Date(NaN) : new Date(asUtc - this._displayOffsetMs());
     }
 
     /**
@@ -231,6 +288,10 @@ class TemperatureChart {
         const response = await fetch(url);
         const data = await response.json();
 
+        if (data && !Array.isArray(data) && typeof data.utc_offset_seconds === 'number') {
+            this.positionOffsetMs = data.utc_offset_seconds * 1000;
+        }
+
         if (Array.isArray(data)) {
             return { times: data.map(item => item.date), temps: data.map(item => item.temperature) };
         }
@@ -253,9 +314,7 @@ class TemperatureChart {
                 grid.push(new Date(t));
             }
 
-            this.temperatureData.labels = grid.map(t =>
-                t.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })
-            );
+            this.temperatureData.labels = grid.map(t => this._formatTimeLabel(t));
             this.temperatureData.times = grid;
             this.temperatureData.values = Array(grid.length).fill(null);
 
@@ -263,7 +322,7 @@ class TemperatureChart {
 
             const hourly = [];
             for (let i = 0; i < data.times.length; i++) {
-                const t = new Date(data.times[i]);
+                const t = this._parseOutdoorLocal(data.times[i]);
                 if (!isNaN(t) && data.temps[i] !== null) {
                     hourly.push({ time: t, temp: data.temps[i] });
                 }
@@ -298,15 +357,19 @@ class TemperatureChart {
             const response = await fetch(url);
             const data = await response.json();
 
+            if (data && !Array.isArray(data) && typeof data.utc_offset_seconds === 'number') {
+                this.positionOffsetMs = data.utc_offset_seconds * 1000;
+            }
+
             const hourly = [];
             if (Array.isArray(data)) {
                 for (const item of data) {
-                    const t = new Date(item.date);
+                    const t = this._parseOutdoorLocal(item.date);
                     if (!isNaN(t) && item.temperature !== null) hourly.push({ time: t, temp: item.temperature });
                 }
             } else {
                 for (let i = 0; i < data.hourly.time.length; i++) {
-                    const t = new Date(data.hourly.time[i]);
+                    const t = this._parseOutdoorLocal(data.hourly.time[i]);
                     if (!isNaN(t) && data.hourly.temperature_2m[i] !== null) {
                         hourly.push({ time: t, temp: data.hourly.temperature_2m[i] });
                     }
@@ -314,17 +377,20 @@ class TemperatureChart {
             }
             hourly.sort((a, b) => a.time - b.time);
 
-            // 2-hour step → ~84 points over 7 days (matches 96 points over 24h at 15 min)
+            // 2-hour step → ~84 points over 7 days (matches 96 points over 24h at 15 min).
+            // Snap the grid start to the location's local midnight so day gridlines
+            // (drawn at 00:00 in _updateChart) always land on a grid point.
+            const offsetMs = this._displayOffsetMs();
+            const gridStart = new Date(past7.getTime() + offsetMs);
+            gridStart.setUTCHours(0, 0, 0, 0);
+            const gridStartMs = gridStart.getTime() - offsetMs;
             const stepMs = 2 * 60 * 60 * 1000;
             const grid = [];
-            for (let t = new Date(past7); t <= now; t = new Date(t.getTime() + stepMs)) {
+            for (let t = new Date(gridStartMs); t <= now; t = new Date(t.getTime() + stepMs)) {
                 grid.push(new Date(t));
             }
 
-            this.temperatureData.labels = grid.map(t =>
-                t.toLocaleDateString('cs-CZ', { day: '2-digit', month: '2-digit' }) + ' ' +
-                t.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })
-            );
+            this.temperatureData.labels = grid.map(t => this._formatDateTimeLabel(t));
             this.temperatureData.times = grid;
             this.temperatureData.values = Array(grid.length).fill(null);
 
@@ -496,16 +562,18 @@ class TemperatureChart {
         };
 
         if (this.currentMode === 'week') {
-            // Show exactly one label per day at midnight, formatted as "10.5."
+            // Show exactly one label per day at the location's local midnight, e.g. "10.5."
             const times = this.temperatureData.times;
+            const offsetMs = this._displayOffsetMs();
             this.chart.options.scales.x.ticks = {
                 maxRotation: 0,
                 autoSkip: false,
                 callback: function(value, index) {
                     const t = times[index];
                     if (!t) return null;
-                    return (t.getHours() === 0 && t.getMinutes() === 0)
-                        ? `${t.getDate()}.${t.getMonth() + 1}.`
+                    const d = new Date(t.getTime() + offsetMs);
+                    return (d.getUTCHours() === 0 && d.getUTCMinutes() === 0)
+                        ? `${d.getUTCDate()}.${d.getUTCMonth() + 1}.`
                         : null;
                 }
             };
