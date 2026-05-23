@@ -2,7 +2,7 @@ services:
   api:
     build:
       context: ./API
-      dockerfile: SensorApi.Python/Dockerfile
+      dockerfile: Dockerfile
     container_name: tempweb-api
     env_file:
       - .env

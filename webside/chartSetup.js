@@ -437,8 +437,19 @@ class TemperatureChart {
         await window.configPromise;
         const cfg = window.configData;
         const now = new Date();
-        const pastWindow = new Date(now.getTime() - windowMs);
-        const start = pastWindow.toISOString();
+
+        // Align the indoor query window to the chart grid that the outdoor
+        // fetch already built, so the indoor series spans exactly the same
+        // range as the outdoor series. The week view snaps its grid start back
+        // to local midnight (~up to a day earlier than now-7d); querying from
+        // now-windowMs instead left the oldest part of the indoor line empty.
+        // Falls back to a plain now-windowMs window if the grid isn't ready yet.
+        const chartTimePoints = this.temperatureData.times;
+        const windowStart = (chartTimePoints && chartTimePoints.length)
+            ? chartTimePoints[0]
+            : new Date(now.getTime() - windowMs);
+
+        const start = windowStart.toISOString();
         const end = now.toISOString();
         const base = cfg.indoorApiAddress + cfg.indoorApiEndpointRange;
         const p = cfg.indoorApiParams;
@@ -451,8 +462,6 @@ class TemperatureChart {
         this.indoorData = Array(this.temperatureData.labels.length).fill(null);
         this.indoorHumidityData = Array(this.temperatureData.labels.length).fill(null);
 
-        const chartTimePoints = this.temperatureData.times;
-
         const indoorDataPoints = [];
         for (let i = 0; i < series.length; i++) {
             const item = series[i];
@@ -461,7 +470,7 @@ class TemperatureChart {
                 ? raw + 'Z'
                 : raw;
             const time = new Date(timeStr);
-            if (isNaN(time) || time < pastWindow || time > now) continue;
+            if (isNaN(time) || time < windowStart || time > now) continue;
             indoorDataPoints.push({
                 time,
                 temp: parseFloat(item.temperature),
@@ -593,11 +602,9 @@ class TemperatureChart {
      * @private
      */
     _setupRefreshTimers() {
-        setInterval(() => {
-            const fetchOutdoor = this.currentMode === 'day' ? this._fetchDayData() : this._fetchWeekData();
-            const fetchIndoor = this.currentMode === 'day' ? this._fetchIndoorDayData() : this._fetchIndoorWeekData();
-            Promise.all([fetchOutdoor, fetchIndoor]).then(() => this._updateChart());
-        }, 15 * 60 * 1000);
+        // Reuse _loadData so the outdoor fetch (which builds the time grid)
+        // completes before the indoor fetch aligns its query window to it.
+        setInterval(() => this._loadData(), 15 * 60 * 1000);
     }
 }
 
