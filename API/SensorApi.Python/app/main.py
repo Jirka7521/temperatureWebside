@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from typing import List, Optional
 
 import os
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import APIRouter, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -35,7 +35,6 @@ class SensorReading(BaseModel):
 
 app = FastAPI(title="Sensor API", version="1.0")
 
-
 # Allow broad access from the static frontend; in production restrict origins.
 app.add_middleware(
     CORSMiddleware,
@@ -44,6 +43,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+router = APIRouter()
 
 
 @app.on_event("startup")
@@ -70,21 +71,21 @@ def on_shutdown() -> None:
     pool.close()
 
 
-@app.get("/health")
+@router.get("/health")
 def health_check() -> dict:
     """Liveness endpoint used by orchestrators and the frontend."""
 
     return {"status": "ok", "host_ip": app.state.host_ip}
 
 
-@app.get("/meta")
+@router.get("/meta")
 def meta() -> dict:
     """Return small runtime metadata for debugging and UI display."""
 
     return {"host_ip": app.state.host_ip}
 
 
-@app.get("/getCurrent", response_model=List[SensorReading])
+@router.get("/getCurrent", response_model=List[SensorReading])
 def get_current() -> List[SensorReading]:
     """Return the most recent sensor reading (or empty list if none).
 
@@ -105,7 +106,7 @@ def get_current() -> List[SensorReading]:
         ]
 
 
-@app.post("/data/insert")
+@router.post("/data/insert")
 def insert_reading(reading: SensorReading) -> dict:
     """Insert a new sensor reading into the database.
 
@@ -128,7 +129,7 @@ def insert_reading(reading: SensorReading) -> dict:
     return {"message": "Insertion successful."}
 
 
-@app.get("/data/query", response_model=List[SensorReading])
+@router.get("/data/query", response_model=List[SensorReading])
 def query_readings(
     start: datetime = Query(...),
     end: datetime = Query(...),
@@ -165,7 +166,7 @@ def query_readings(
     return filtered
 
 
-@app.get("/getPast", response_model=List[SensorReading])
+@router.get("/getPast", response_model=List[SensorReading])
 def get_past(
     start: datetime = Query(...),
     end: datetime = Query(...),
@@ -176,7 +177,7 @@ def get_past(
     return query_readings(start=start, end=end, interval=interval)
 
 
-@app.get("/data/list")
+@router.get("/data/list")
 def list_readings_paginated(
     start: Optional[datetime] = Query(None),
     end: Optional[datetime] = Query(None),
@@ -261,3 +262,8 @@ def list_readings_paginated(
         "pages": total_pages,
         "data": data,
     }
+
+
+# Register all routes at both / and /tempAPI
+app.include_router(router)
+app.include_router(router, prefix="/tempAPI")

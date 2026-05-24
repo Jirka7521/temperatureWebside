@@ -4,6 +4,7 @@ WORKDIR /usr/share/nginx/html
 
 COPY . ./
 COPY docker-entrypoint.sh /docker-entrypoint.sh
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Download vendor JS/CSS at build time so the page works without internet access.
 RUN chmod +x /docker-entrypoint.sh && \
