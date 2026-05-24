@@ -13,10 +13,8 @@ window.inlineConfig = {
   },
 
   // API endpoint for outdoor weather data
-  // Public weather API used for outdoor forecasts
+  // Public weather API used for outdoor forecasts and the outdoor chart
   apiAddress: "https://api.open-meteo.com/v1/forecast",
-  // Archive API for historical weather data (Open-Meteo archive)
-  archiveApiAddress: "https://archive-api.open-meteo.com/v1/archive",
 
   // API endpoint for indoor sensor data
   // Use the server host reachable by clients. For local testing the backend

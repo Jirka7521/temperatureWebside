@@ -250,8 +250,11 @@ class OutdoorTemperaturePanel extends Panel {
         const baseUrl = this.config.apiAddress || 'https://api.open-meteo.com/v1/forecast';
         const lat = this.config.position.latitude;
         const lon = this.config.position.longitude;
-        // Request current conditions and hourly temperature + precipitation probability
-        const url = `${baseUrl}?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,precipitation_probability&precipitation_unit=mm&timezone=auto`;
+        // Request current conditions and hourly temperature + precipitation probability.
+        // Only request fields that are actually read below: current_weather (current
+        // temperature), hourly temperature_2m (1-hour forecast), and
+        // precipitation_probability (rain display).
+        const url = `${baseUrl}?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,precipitation_probability&timezone=auto`;
         const response = await fetch(url);
         const data = await response.json();
 

@@ -275,26 +275,22 @@ class TemperatureChart {
      */
     async _fetchTemperatureData() {
         await window.configPromise;
-        const baseUrl = window.configData?.archiveApiAddress || 'https://archive-api.open-meteo.com/v1/archive';
+        // Use the same forecast API as the outdoor number panel (getValues.js).
+        // It is more accurate for recent data than the archive/reanalysis API.
+        const baseUrl = window.configData?.apiAddress || 'https://api.open-meteo.com/v1/forecast';
         const lat = window.configData?.position?.latitude || 50.0755;
         const lon = window.configData?.position?.longitude || 14.4378;
 
-        const now = new Date();
-        const past = new Date(now.getTime() - 24 * 3600 * 1000);
-        const start_date = past.toISOString().split('T')[0];
-        const end_date = now.toISOString().split('T')[0];
-
-        const url = `${baseUrl}?latitude=${lat}&longitude=${lon}&hourly=temperature_2m&start_date=${start_date}&end_date=${end_date}&timezone=auto`;
+        // past_days=1 covers the last 24 h; forecast_days=1 supplies the trailing
+        // anchor so the final grid point (at "now") still interpolates.
+        const url = `${baseUrl}?latitude=${lat}&longitude=${lon}&hourly=temperature_2m&past_days=1&forecast_days=1&timezone=auto`;
         const response = await fetch(url);
         const data = await response.json();
 
-        if (data && !Array.isArray(data) && typeof data.utc_offset_seconds === 'number') {
+        if (typeof data?.utc_offset_seconds === 'number') {
             this.positionOffsetMs = data.utc_offset_seconds * 1000;
         }
 
-        if (Array.isArray(data)) {
-            return { times: data.map(item => item.date), temps: data.map(item => item.temperature) };
-        }
         return { times: data.hourly.time, temps: data.hourly.temperature_2m };
     }
 
@@ -343,36 +339,31 @@ class TemperatureChart {
     async _fetchWeekData() {
         try {
             await window.configPromise;
-            const baseUrl = window.configData?.archiveApiAddress || 'https://archive-api.open-meteo.com/v1/archive';
+            // Same forecast API as the outdoor number panel (getValues.js) —
+            // more accurate for recent data than the archive/reanalysis API.
+            const baseUrl = window.configData?.apiAddress || 'https://api.open-meteo.com/v1/forecast';
             const lat = window.configData?.position?.latitude || 50.0755;
             const lon = window.configData?.position?.longitude || 14.4378;
 
             const now = new Date();
             const past7 = new Date(now.getTime() - 7 * 24 * 3600 * 1000);
             past7.setHours(0, 0, 0, 0); // snap to midnight so grid always lands on 00:00
-            const start_date = past7.toISOString().split('T')[0];
-            const end_date = now.toISOString().split('T')[0];
 
-            const url = `${baseUrl}?latitude=${lat}&longitude=${lon}&hourly=temperature_2m&start_date=${start_date}&end_date=${end_date}&timezone=auto`;
+            // past_days=7 covers the last week; forecast_days=1 supplies the
+            // trailing anchor so the final grid point (at "now") still interpolates.
+            const url = `${baseUrl}?latitude=${lat}&longitude=${lon}&hourly=temperature_2m&past_days=7&forecast_days=1&timezone=auto`;
             const response = await fetch(url);
             const data = await response.json();
 
-            if (data && !Array.isArray(data) && typeof data.utc_offset_seconds === 'number') {
+            if (typeof data?.utc_offset_seconds === 'number') {
                 this.positionOffsetMs = data.utc_offset_seconds * 1000;
             }
 
             const hourly = [];
-            if (Array.isArray(data)) {
-                for (const item of data) {
-                    const t = this._parseOutdoorLocal(item.date);
-                    if (!isNaN(t) && item.temperature !== null) hourly.push({ time: t, temp: item.temperature });
-                }
-            } else {
-                for (let i = 0; i < data.hourly.time.length; i++) {
-                    const t = this._parseOutdoorLocal(data.hourly.time[i]);
-                    if (!isNaN(t) && data.hourly.temperature_2m[i] !== null) {
-                        hourly.push({ time: t, temp: data.hourly.temperature_2m[i] });
-                    }
+            for (let i = 0; i < data.hourly.time.length; i++) {
+                const t = this._parseOutdoorLocal(data.hourly.time[i]);
+                if (!isNaN(t) && data.hourly.temperature_2m[i] !== null) {
+                    hourly.push({ time: t, temp: data.hourly.temperature_2m[i] });
                 }
             }
             hourly.sort((a, b) => a.time - b.time);
